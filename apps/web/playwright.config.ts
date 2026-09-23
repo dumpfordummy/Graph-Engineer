@@ -4,7 +4,7 @@ import path from 'node:path'
 import process from 'node:process'
 
 const webRoot = path.dirname(fileURLToPath(import.meta.url))
-const artifacts = path.resolve(webRoot, '../../.artifacts/m1')
+const artifacts = path.resolve(webRoot, '../../.artifacts/m2')
 
 export default defineConfig({
   testDir: './e2e',
@@ -13,7 +13,7 @@ export default defineConfig({
   retries: 0,
   timeout: 45_000,
   expect: { timeout: 8_000 },
-  outputDir: path.join(artifacts, 'test-results'),
+  outputDir: path.join(artifacts, 'browser-test-results'),
   reporter: [
     ['list'],
     ['html', { outputFolder: path.join(artifacts, 'playwright-report'), open: 'never' }],
@@ -24,7 +24,7 @@ export default defineConfig({
     channel: process.env.PLAYWRIGHT_CHANNEL || 'chrome',
     baseURL: 'http://127.0.0.1:5188',
     viewport: { width: 1440, height: 900 },
-    trace: 'retain-on-failure',
-    screenshot: 'only-on-failure',
+    trace: 'off',
+    screenshot: 'off',
   },
 })

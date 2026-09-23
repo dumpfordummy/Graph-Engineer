@@ -1,6 +1,8 @@
 using System.Net;
 using GraphEngineering.Api.Http;
 using GraphEngineering.Api.Persistence;
+using GraphEngineering.Api.Providers;
+using GraphEngineering.Api.Security;
 using GraphEngineering.Core.Documents;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.Data.Sqlite;
@@ -15,7 +17,7 @@ foreach (var url in urls.Split(';', StringSplitOptions.RemoveEmptyEntries))
 {
     if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https") ||
         !(uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase) || IPAddress.TryParse(uri.Host.Trim('[', ']'), out var ip) && IPAddress.IsLoopback(ip)))
-        throw new InvalidOperationException("Graph Engineering M1 must bind to a loopback address.");
+        throw new InvalidOperationException("Graph Engineering must bind to a loopback address.");
 }
 builder.WebHost.UseUrls(urls);
 builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = DocumentJson.MaximumBytes);
@@ -24,6 +26,8 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.PropertyNameCaseInsensitive = false;
 });
 builder.Services.AddProblemDetails();
+builder.Services.AddLocalSecurity();
+builder.Services.AddProviders();
 builder.Services.AddDbContext<WorkflowDbContext>((services, options) =>
 {
     var configuration = services.GetRequiredService<IConfiguration>();
@@ -39,6 +43,8 @@ builder.Services.AddDbContext<WorkflowDbContext>((services, options) =>
     options.UseSqlite(connection);
 });
 var app = builder.Build();
+var launch = app.Services.GetRequiredService<LocalLaunch>();
+app.Logger.LogInformation("Pair this browser using the local file {PairingFile}. Its contents must not be shared or logged.", launch.TokenPath);
 app.UseExceptionHandler(handler => handler.Run(async context =>
 {
     var error = context.Features.Get<IExceptionHandlerFeature>()?.Error;
@@ -55,7 +61,10 @@ await using (var scope = app.Services.CreateAsyncScope())
     var db = scope.ServiceProvider.GetRequiredService<WorkflowDbContext>();
     await db.Database.MigrateAsync();
 }
+app.UseLocalSecurity();
+app.MapLocalSession();
 app.MapWorkflowEndpoints();
+app.MapProviderEndpoints();
 app.Run();
 
 public partial class Program;

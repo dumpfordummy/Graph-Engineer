@@ -467,6 +467,11 @@
         "resolved": "10.0.12",
         "contentHash": "sOZM+VyRj1pg/ItlHsvrSbjws6oGqZveTzTNBGZ9ziwRDyKsOF3ub6vhvOdxotCIqtlnyHAIwP5sLNvgiZC+pQ=="
       },
+      "System.Security.Cryptography.ProtectedData": {
+        "type": "Transitive",
+        "resolved": "10.0.12",
+        "contentHash": "wO0W8VDMeRJZakRySOmemAnrBZMwEFRlbfBtATxUiLf2I3IhSRnCp1Vt157NWptdE4IJ7eftd5n8q9LtaKHFTQ=="
+      },
       "xunit.abstractions": {
         "type": "Transitive",
         "resolved": "2.0.3",
@@ -511,7 +516,8 @@
         "type": "Project",
         "dependencies": {
           "GraphEngineering.Core": "[1.0.0, )",
-          "Microsoft.EntityFrameworkCore.Sqlite": "[10.0.12, )"
+          "Microsoft.EntityFrameworkCore.Sqlite": "[10.0.12, )",
+          "System.Security.Cryptography.ProtectedData": "[10.0.12, )"
         }
       },
       "graphengineering.core": {

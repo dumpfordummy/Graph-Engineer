@@ -20,7 +20,7 @@ public static class DocumentJson
 {
     public const int MaximumBytes = 1_048_576;
     public const long MaximumSafeInteger = 9_007_199_254_740_991;
-    public const string ValidationScope = "Structure and draft configuration only. Provider configuration and execution readiness are not checked in M1. Execution is unavailable.";
+    public const string ValidationScope = "Structure and draft configuration only. Provider configuration and execution readiness are not checked by graph validation. Execution is unavailable until M3.";
     public static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web)
     {
         PropertyNameCaseInsensitive = false,

@@ -2,14 +2,17 @@ param(
     [ValidateRange(1024, 65535)][int]$ApiPort = 5080,
     [ValidateRange(1024, 65535)][int]$WebPort = 5173,
     [string]$DataDirectory,
+    [switch]$NoBuild,
     [switch]$SmokeTest
 )
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $apiProcess = $null
 $webProcess = $null
+$processJob = $null
 $oldDataDirectory = $env:GRAPH_ENGINEERING_DATA_DIR
 $oldApiTarget = $env:VITE_API_TARGET
+$oldBrowserOrigin = $env:GRAPH_ENGINEERING_BROWSER_ORIGIN
 
 function Assert-FreePort([int]$Port) {
     $client = New-Object System.Net.Sockets.TcpClient
@@ -30,16 +33,26 @@ try {
     }
     Assert-FreePort $ApiPort
     Assert-FreePort $WebPort
-    & dotnet build GraphEngineering.slnx --no-restore
-    if ($LASTEXITCODE -ne 0) { throw 'Backend build failed. If packages are missing, run: dotnet restore GraphEngineering.slnx --locked-mode' }
-    $logDirectory = Join-Path $repoRoot '.artifacts/dev'
+    if (-not $NoBuild) {
+        & dotnet build GraphEngineering.slnx --no-restore
+        if ($LASTEXITCODE -ne 0) { throw 'Backend build failed. If packages are missing, run: dotnet restore GraphEngineering.slnx --locked-mode' }
+    } else { Write-Host 'Using the existing built API (-NoBuild).' }
+    $apiDll = Join-Path $repoRoot 'src/GraphEngineering.Api/bin/Debug/net10.0/GraphEngineering.Api.dll'
+    if (-not (Test-Path -LiteralPath $apiDll)) { throw 'The built API is missing. Run: dotnet build GraphEngineering.slnx --no-restore' }
+    . (Join-Path $PSScriptRoot 'launcher-process-job.ps1')
+    $processJob = New-Object GraphEngineering.LauncherProcessJob
+    $logDirectory = Join-Path $repoRoot ".artifacts/dev/$ApiPort-$WebPort"
     New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
     if ($DataDirectory) { $env:GRAPH_ENGINEERING_DATA_DIR = [System.IO.Path]::GetFullPath($DataDirectory) }
     $env:VITE_API_TARGET = "http://127.0.0.1:$ApiPort"
-    $apiDll = Join-Path $repoRoot 'src/GraphEngineering.Api/bin/Debug/net10.0/GraphEngineering.Api.dll'
+    $env:GRAPH_ENGINEERING_BROWSER_ORIGIN = "http://127.0.0.1:$WebPort"
     $viteJs = Join-Path $repoRoot 'apps/web/node_modules/vite/bin/vite.js'
     $apiProcess = Start-Process -FilePath (Get-Command dotnet).Source -ArgumentList @("`"$apiDll`"", '--urls', "http://127.0.0.1:$ApiPort") -WorkingDirectory $repoRoot -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $logDirectory 'api.log') -RedirectStandardError (Join-Path $logDirectory 'api-error.log')
+    Write-Host "Owned API process: $($apiProcess.Id)"
+    $processJob.AddProcess($apiProcess.Handle)
     $webProcess = Start-Process -FilePath (Get-Command node).Source -ArgumentList @("`"$viteJs`"", '--host', '127.0.0.1', '--port', "$WebPort", '--strictPort') -WorkingDirectory (Join-Path $repoRoot 'apps/web') -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $logDirectory 'web.log') -RedirectStandardError (Join-Path $logDirectory 'web-error.log')
+    Write-Host "Owned web process: $($webProcess.Id)"
+    $processJob.AddProcess($webProcess.Handle)
     $healthy = $false
     for ($attempt = 0; $attempt -lt 60; $attempt++) {
         if ($apiProcess.HasExited -or $webProcess.HasExited) { throw "A development service exited. Inspect $logDirectory." }
@@ -57,14 +70,17 @@ try {
         Write-Host 'PASS: API health and frontend responded; stopping owned smoke-test services.'
         return
     }
-    Write-Host 'Press Ctrl+C to stop only the two processes started by this script.'
+    Write-Host 'Press Ctrl+C to stop the services and descendants owned by this launcher.'
     while (-not $apiProcess.HasExited -and -not $webProcess.HasExited) { Start-Sleep -Seconds 1 }
     throw "A development service exited. Inspect $logDirectory."
 } finally {
+    if ($null -ne $processJob) { $processJob.Dispose() }
     foreach ($process in @($webProcess, $apiProcess)) {
-        if ($null -ne $process -and -not $process.HasExited) { Stop-Process -Id $process.Id -ErrorAction SilentlyContinue }
+        if ($null -ne $process -and -not $process.HasExited) { $process.Kill() }
+        if ($null -ne $process) { [void]$process.WaitForExit(5000); $process.Dispose() }
     }
     $env:GRAPH_ENGINEERING_DATA_DIR = $oldDataDirectory
     $env:VITE_API_TARGET = $oldApiTarget
+    $env:GRAPH_ENGINEERING_BROWSER_ORIGIN = $oldBrowserOrigin
     Pop-Location
 }

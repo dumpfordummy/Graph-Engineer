@@ -15,10 +15,10 @@ const date = (value: string) => new Date(value).toLocaleString(undefined, { date
 
 <template>
   <div class="list-page">
-    <header class="app-header"><RouterLink to="/" class="brand"><span class="brand-mark">⌘</span> Graph Engineering</RouterLink><span class="local-badge"><span></span> Local workspace</span></header>
+    <header class="app-header"><RouterLink to="/" class="brand"><span class="brand-mark">⌘</span> Graph Engineering</RouterLink><RouterLink to="/settings/connections" class="back-link">Model connections</RouterLink><span class="local-badge"><span></span> Local workspace</span></header>
     <main class="workflow-library">
       <div class="library-heading"><div><div class="eyebrow">YOUR WORKSPACE</div><h1>Workflows</h1><p>Give your next idea a structure.</p></div><RouterLink to="/workflows/new" class="button primary">＋ New workflow</RouterLink></div>
-      <div class="milestone-note"><span class="tag">M1 · DESIGN</span><p>Create, connect, and save drafts on this computer. Execution becomes available in a later milestone.</p></div>
+      <div class="milestone-note"><span class="tag">M2 · DESIGN</span><p>Create, connect, and save drafts on this computer. Execution becomes available in a later milestone.</p></div>
       <div v-if="error" role="alert" class="error-banner">{{ error }} <button @click="refresh">Try again</button></div>
       <div v-if="loading" class="loading-state" role="status">Loading your workflows…</div>
       <section v-else-if="!error && workflows.length === 0" class="empty-library"><span class="empty-symbol">◇</span><h2>A clear starting point</h2><p>Create a workflow with Start, Model Call, and End.<br>Make it your own, then save your first draft.</p><RouterLink to="/workflows/new" class="button">Create your first workflow</RouterLink></section>

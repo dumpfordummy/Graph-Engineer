@@ -22,15 +22,15 @@ public sealed class WorkflowApiTests
     public async Task FreshDatabaseMigratesAndReportsHealthyEmptyList()
     {
         using var data = new IsolatedData();
-        await using var app = new ApiFactory(data.Path);
-        using var client = app.CreateClient();
+        await using var app = new LocalApiFactory(data.Path);
+        using var client = await app.CreatePairedClientAsync();
         Assert.Equal("ok", (await client.GetFromJsonAsync<JsonObject>("/api/health"))!["status"]!.GetValue<string>());
         Assert.Empty((await client.GetFromJsonAsync<JsonArray>("/api/workflows"))!);
         await using var scope = app.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<WorkflowDbContext>();
         Assert.Equal("Microsoft.EntityFrameworkCore.Sqlite", db.Database.ProviderName);
         Assert.Equal(System.IO.Path.Combine(data.Path, "workflows.db"), db.Database.GetDbConnection().DataSource);
-        Assert.Single(await db.Database.GetAppliedMigrationsAsync());
+        Assert.Equal(2, (await db.Database.GetAppliedMigrationsAsync()).Count());
         Assert.False(db.Database.HasPendingModelChanges());
         Assert.True(File.Exists(System.IO.Path.Combine(data.Path, "workflows.db")));
     }
@@ -40,9 +40,9 @@ public sealed class WorkflowApiTests
     {
         using var data = new IsolatedData();
         JsonObject saved;
-        await using (var firstHost = new ApiFactory(data.Path))
+        await using (var firstHost = new LocalApiFactory(data.Path))
         {
-            using var client = firstHost.CreateClient();
+            using var client = await firstHost.CreatePairedClientAsync();
             var original = DocumentFixture.Create();
             var created = await Create(client, original);
             Assert.NotEqual(original["workflow"]!["id"]!.GetValue<string>(), created["workflow"]!["id"]!.GetValue<string>());
@@ -61,8 +61,8 @@ public sealed class WorkflowApiTests
             Assert.True(JsonNode.DeepEquals(created["layout"], saved["layout"]));
         }
         SqliteConnection.ClearAllPools();
-        await using var restartedHost = new ApiFactory(data.Path);
-        using var restarted = restartedHost.CreateClient();
+        await using var restartedHost = new LocalApiFactory(data.Path);
+        using var restarted = await restartedHost.CreatePairedClientAsync();
         var loaded = await restarted.GetFromJsonAsync<JsonObject>(Url(saved));
         Assert.True(JsonNode.DeepEquals(saved, loaded));
         var list = (await restarted.GetFromJsonAsync<JsonArray>("/api/workflows"))!;
@@ -74,8 +74,8 @@ public sealed class WorkflowApiTests
     public async Task ConcurrentUpdatesAllowExactlyOneWriterAndPreserveWinner()
     {
         using var data = new IsolatedData();
-        await using var app = new ApiFactory(data.Path);
-        using var client = app.CreateClient();
+        await using var app = new LocalApiFactory(data.Path);
+        using var client = await app.CreatePairedClientAsync();
         var initial = await Create(client, DocumentFixture.Create());
         var left = initial.DeepClone();
         left["workflow"]!["name"] = "Left writer";
@@ -99,8 +99,8 @@ public sealed class WorkflowApiTests
     public async Task SemanticErrorsAreSaveableAndValidateUsesUnsavedDocument()
     {
         using var data = new IsolatedData();
-        await using var app = new ApiFactory(data.Path);
-        using var client = app.CreateClient();
+        await using var app = new LocalApiFactory(data.Path);
+        using var client = await app.CreatePairedClientAsync();
         var document = DocumentFixture.Create();
         DocumentFixture.RemoveNode(document, "start");
         DocumentFixture.RemoveNode(document, "end");
@@ -124,8 +124,8 @@ public sealed class WorkflowApiTests
     public async Task StructuralFailureIs422ForSaveAndDiagnosticReportForValidate()
     {
         using var data = new IsolatedData();
-        await using var app = new ApiFactory(data.Path);
-        using var client = app.CreateClient();
+        await using var app = new LocalApiFactory(data.Path);
+        using var client = await app.CreatePairedClientAsync();
         var document = DocumentFixture.Create();
         DocumentFixture.Edges(document)[0]!["targetPort"] = "wrong";
         var save = await client.PostAsJsonAsync("/api/workflows", new { document });
@@ -148,8 +148,8 @@ public sealed class WorkflowApiTests
     public async Task InvalidBodiesHaveStructuredProblemDetails(string body, int status)
     {
         using var data = new IsolatedData();
-        await using var app = new ApiFactory(data.Path);
-        using var client = app.CreateClient();
+        await using var app = new LocalApiFactory(data.Path);
+        using var client = await app.CreatePairedClientAsync();
         var response = await client.PostAsync("/api/workflows", new StringContent(body, Encoding.UTF8, "application/json"));
         Assert.Equal(status, (int)response.StatusCode);
         var error = (await response.Content.ReadFromJsonAsync<JsonObject>())!;
@@ -161,8 +161,8 @@ public sealed class WorkflowApiTests
     public async Task OversizedPayloadIsRejectedBeforePersistence()
     {
         using var data = new IsolatedData();
-        await using var app = new ApiFactory(data.Path);
-        using var client = app.CreateClient();
+        await using var app = new LocalApiFactory(data.Path);
+        using var client = await app.CreatePairedClientAsync();
         var document = DocumentFixture.Create();
         DocumentFixture.Nodes(document)[1]!["configuration"]!["prompt"] = new string('x', DocumentJson.MaximumBytes);
         var response = await client.PostAsJsonAsync("/api/workflows", new { document });
@@ -174,8 +174,8 @@ public sealed class WorkflowApiTests
     public async Task ImportValidationDoesNotPersistAndCreationAlwaysAssignsNewIdentity()
     {
         using var data = new IsolatedData();
-        await using var app = new ApiFactory(data.Path);
-        using var client = app.CreateClient();
+        await using var app = new LocalApiFactory(data.Path);
+        using var client = await app.CreatePairedClientAsync();
         var first = await Create(client, DocumentFixture.Create());
         var validation = await client.PostAsJsonAsync("/api/workflows/validate", new { document = first });
         Assert.Equal(HttpStatusCode.OK, validation.StatusCode);
@@ -191,8 +191,8 @@ public sealed class WorkflowApiTests
     public async Task IdentityAndRevisionMismatchCannotUpdateAnotherWorkflow()
     {
         using var data = new IsolatedData();
-        await using var app = new ApiFactory(data.Path);
-        using var client = app.CreateClient();
+        await using var app = new LocalApiFactory(data.Path);
+        using var client = await app.CreatePairedClientAsync();
         var first = await Create(client, DocumentFixture.Create());
         var second = await Create(client, DocumentFixture.Create());
         var wrongIdentity = await client.PutAsJsonAsync(Url(second), new { expectedRevision = 1, document = first });
@@ -207,8 +207,8 @@ public sealed class WorkflowApiTests
     public async Task DatabaseFailureReturnsHonestUnavailableProblem()
     {
         using var data = new IsolatedData();
-        await using var app = new ApiFactory(data.Path);
-        using var client = app.CreateClient();
+        await using var app = new LocalApiFactory(data.Path);
+        using var client = await app.CreatePairedClientAsync();
         await using (var scope = app.Services.CreateAsyncScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<WorkflowDbContext>();
@@ -228,19 +228,6 @@ public sealed class WorkflowApiTests
     }
     private static string Url(JsonObject document) => "/api/workflows/" + document["workflow"]!["id"]!.GetValue<string>();
 
-    private sealed class ApiFactory(string directory) : WebApplicationFactory<Program>
-    {
-        protected override void ConfigureWebHost(IWebHostBuilder builder)
-        {
-            builder.UseEnvironment("Testing");
-            builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["GRAPH_ENGINEERING_DATA_DIR"] = directory,
-                ["Logging:LogLevel:Default"] = "Warning"
-            }));
-        }
-    }
-
     private sealed class IsolatedData : IDisposable
     {
         public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "GraphEngineering.Api.Tests", Guid.NewGuid().ToString("N"));
@@ -251,5 +238,3 @@ public sealed class WorkflowApiTests
         }
     }
 }
-
-

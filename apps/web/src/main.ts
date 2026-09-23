@@ -4,6 +4,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import App from './App.vue'
 import WorkflowList from './features/workflows/WorkflowList.vue'
 import WorkflowEditor from './features/workflows/WorkflowEditor.vue'
+import ProviderList from './features/providers/ProviderList.vue'
+import ProviderEditor from './features/providers/ProviderEditor.vue'
 import '@vue-flow/core/dist/style.css'
 import '@vue-flow/core/dist/theme-default.css'
 import '@vue-flow/controls/dist/style.css'
@@ -15,6 +17,8 @@ const router = createRouter({
   routes: [
     { path: '/', component: WorkflowList },
     { path: '/workflows/:id', component: WorkflowEditor },
+    { path: '/settings/connections', component: ProviderList },
+    { path: '/settings/connections/:id', component: ProviderEditor },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
 })

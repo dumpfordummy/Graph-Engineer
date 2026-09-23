@@ -14,7 +14,7 @@ export interface WorkflowDocument {
 }
 export interface ValidationIssue { code: string; severity: string; message: string; path: string; nodeId?: string; edgeId?: string }
 export interface ValidationReport { structurallyValid: boolean; valid: boolean; issues: ValidationIssue[]; scope: string }
-export const SCOPE = 'Structure and draft configuration only. Provider configuration and execution readiness are not checked in M1. Execution is unavailable.'
+export const SCOPE = 'Structure and draft configuration only. Provider readiness is shown separately in the inspector. Validation never contacts a provider. Execution is unavailable until M3.'
 export const MAX_BYTES = 1_048_576
 export const nodeLabels: Record<NodeType, string> = { start: 'Start', modelCall: 'Model Call', end: 'End' }
 export function copyDocument(document: WorkflowDocument): WorkflowDocument { return JSON.parse(JSON.stringify(document)) as WorkflowDocument }

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using GraphEngineering.Core.Documents;
+using GraphEngineering.Api.Providers;
 using Microsoft.EntityFrameworkCore;
 
 namespace GraphEngineering.Api.Persistence;
@@ -7,6 +8,8 @@ namespace GraphEngineering.Api.Persistence;
 public sealed class WorkflowDbContext(DbContextOptions<WorkflowDbContext> options) : DbContext(options)
 {
     public DbSet<WorkflowRecord> Workflows => Set<WorkflowRecord>();
+    public DbSet<ProviderRecord> ProviderProfiles => Set<ProviderRecord>();
+    public DbSet<ProviderCredential> ProviderCredentials => Set<ProviderCredential>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -20,6 +23,22 @@ public sealed class WorkflowDbContext(DbContextOptions<WorkflowDbContext> option
         entity.Property(workflow => workflow.DefinitionJson).IsRequired();
         entity.Property(workflow => workflow.LayoutJson).IsRequired();
         entity.HasIndex(workflow => workflow.UpdatedAtUtc);
+        var provider = modelBuilder.Entity<ProviderRecord>();
+        provider.ToTable("ProviderProfiles");
+        provider.HasKey(x => x.Id);
+        provider.Property(x => x.Id).ValueGeneratedNever();
+        provider.Property(x => x.Name).HasMaxLength(120).IsRequired();
+        provider.Property(x => x.Protocol).HasMaxLength(40).IsRequired();
+        provider.Property(x => x.BaseUrl).HasMaxLength(2048).IsRequired();
+        provider.Property(x => x.ModelId).HasMaxLength(200).IsRequired();
+        provider.Property(x => x.AuthMode).HasMaxLength(20).IsRequired();
+        provider.Property(x => x.Revision).IsConcurrencyToken();
+        var credential = modelBuilder.Entity<ProviderCredential>();
+        credential.ToTable("ProviderCredentials");
+        credential.HasKey(x => x.ProviderId);
+        credential.Property(x => x.ProviderId).ValueGeneratedNever();
+        credential.Property(x => x.Ciphertext).IsRequired();
+        provider.HasOne(x => x.Credential).WithOne().HasForeignKey<ProviderCredential>(x => x.ProviderId).OnDelete(DeleteBehavior.Cascade);
     }
 }
 

@@ -68,7 +68,7 @@ test('create, configure and connect two models; save, reload and restart the rea
   await page.getByLabel('Node name', { exact: true }).fill('Extract facts')
   await page.getByLabel('Node description', { exact: true }).fill('First persisted model description')
   await page.getByLabel('Prompt', { exact: true }).fill('Extract a short list of facts from the sample input.')
-  await page.getByLabel('Future provider profile ID', { exact: true }).fill('synthetic-future-profile')
+  await expect(page.getByLabel('Provider profile', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Add Model Call', exact: true }).click()
   const added = await exportDocument(page)
   const secondModel = added.definition.nodes.find(node => !original.definition.nodes.some(previous => previous.id === node.id))!
@@ -143,6 +143,8 @@ test('create, configure and connect two models; save, reload and restart the rea
 
   const restart = await backend.restart()
   expect(restart.nextPid).not.toBe(restart.previousPid)
+  await backend.pairRequest(request)
+  await page.context().addCookies((await backend.session()).state.cookies)
   const retrieved = await request.get(`${apiBase}/workflows/${persisted.workflow.id}`)
   expect(await retrieved.json()).toEqual(persisted)
   await page.reload()

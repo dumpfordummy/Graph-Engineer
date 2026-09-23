@@ -4,7 +4,7 @@
 
 Build Graph Engineering: a local-first visual workflow editor and execution application for engineers. Use Vue, not React. Read docs/PROJECT_BRIEF.md and docs/ARCHITECTURE.md before implementation. Read docs/PROGRESS.md and the assigned task before each milestone.
 
-The current authorized implementation scope is **M1 only**, defined in docs/tasks/M1_FOUNDATION_EDITOR.md. Future milestones provide direction, not permission to implement extra features. Deliver working code, not only a plan. Stop at the milestone gate and report evidence.
+M1 is conditionally accepted for development progression. The current authorized implementation scope is **M2 only**, defined in docs/tasks/M2_PROVIDERS_SECURITY.md and docs/tasks/M2_CODEX_PROMPT.md. Future milestones provide direction, not permission to implement extra features. Deliver working code, not only a plan. Stop at the milestone gate and report evidence.
 
 ## Work process
 
@@ -33,7 +33,7 @@ The current authorized implementation scope is **M1 only**, defined in docs/task
 - Do not read or copy Codex authentication files. Developer Codex authentication is separate from app provider credentials.
 - Bind local development services to loopback. Do not enable wildcard CORS or expose command execution to the network.
 - Do not use `v-html` or equivalent raw HTML rendering for user/model-controlled text. Validate imported documents server-side as well as client-side.
-- No arbitrary shell commands, external repository modifications, real model calls, or credential handling in M1.
+- No arbitrary shell commands, external repository modifications, graph execution, or coding-agent invocation in M2. Only the explicit Responses connection probe is authorized; actual provider credentials and the final real-provider check are user-operated.
 - When execution is introduced later, treat repository scripts, model outputs, and imported graphs as untrusted. A workspace path or Git worktree is not an operating-system sandbox.
 - Cancellation is not rollback. A crashed or disconnected worker is not proof that a side effect did not happen. Never promise exactly-once external execution.
 

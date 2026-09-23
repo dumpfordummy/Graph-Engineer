@@ -1,88 +1,115 @@
 # Graph Engineering
 
-Prepared: 2026-09-23. Working project name: Graph Engineering.
+Graph Engineering is a local Vue graph editor backed by ASP.NET Core and SQLite. M1 provides editable Start, Model Call, and End drafts, structural validation, revision-checked saves, and JSON import/export. M2 adds local browser pairing, protected provider profiles, an explicit Responses text connection probe, and per-node profile selection. **Workflow Run remains disabled until M3.** There is no graph execution, shell node, coding-agent invocation, or simulated run.
 
-Graph Engineering is a local Vue graph editor backed by ASP.NET Core and SQLite. M1 adds editable Start, Model Call, and End drafts, structural validation, revision-checked saves, and JSON import/export. **Execution is unavailable in M1**: Run is disabled, and there are no model connections, credentials, coding-agent invocations, commands, or simulated runs.
+M1 is conditionally accepted for development progression. M2 implementation and automated evidence are documented in [the M2 handoff](docs/handoffs/M2_REPORT.md); final real-provider verification is user-operated. The original HTML remains a visual/conceptual reference only.
 
-The original planning pack was prepared on 2026-09-23. Its project instructions, architecture decisions, milestone task, and HTML reference remain under `docs/` and `AGENTS.md`. Actual implementation evidence belongs in [the M1 handoff](docs/handoffs/M1_REPORT.md), not in the prototype.
+## Install and start
 
-## Start here
+Prerequisites: Windows, .NET SDK **10.0.401**, Node **24.11.1**, npm **11.6.2**, and PowerShell. Toolchain pins and actual environment details are in [ENVIRONMENT.md](docs/ENVIRONMENT.md). Installed Google Chrome is used for browser checks. Project scripts install no machine-wide prerequisites.
 
-Use a dedicated development directory, not a production or company game repository. Prerequisites: .NET SDK **10.0.301**, Node **24.11.1**, npm **11.6.2**, and PowerShell. The SDK and Node versions are pinned; [environment details](docs/ENVIRONMENT.md) explain package compatibility choices. Google Chrome is used for browser acceptance tests. No script installs machine-wide prerequisites.
-
-For first setup or a dependency refresh, stop this project's running dev server and tests first. Press Ctrl+C in their original terminals and wait for the prompt. Then, from the repository root:
+Stop this project's development server/tests with Ctrl+C before installing dependencies. From the repository root:
 
 ```powershell
 dotnet restore GraphEngineering.slnx --locked-mode
 npm ci --prefix apps/web
-```
-
-For normal startup after dependencies are installed, run only:
-
-```powershell
 .\scripts\dev.ps1
 ```
 
-You do not need to run `npm ci` every time you start the app. It replaces the existing `node_modules` tree. On Windows, an active Vite/Vitest process can hold Rolldown's native `.node` binary open, causing `EPERM ... unlink ... rolldown-binding.win32-x64-msvc.node`. Stop the project dev/test processes before retrying `npm ci --prefix apps/web`; this error alone does not require administrator mode or changing file permissions. Use Ctrl+C before closing the dev terminal so its owned services can be cleaned up.
+For later launches, use only ` .\scripts\dev.ps1 `; reinstalling is unnecessary. Open **http://127.0.0.1:5173**. API health is **http://127.0.0.1:5080/api/health**. Both services bind to loopback; Vite proxies `/api` and does not enable cross-origin access. Use the exact numeric address, not an alternate hostname. Logs are in `.artifacts/dev/5080-5173/`.
 
-Open **http://127.0.0.1:5173**. The API health endpoint is **http://127.0.0.1:5080/api/health**. Both hosts bind to loopback; the Vite proxy forwards `/api`. The startup script builds the backend, starts only its own two child processes, writes logs to `.artifacts/dev/`, and stops those processes on Ctrl+C. It refuses occupied ports without terminating other processes. Customize ports with `-ApiPort 5081 -WebPort 5174`.
+The launcher builds first, refuses occupied ports, and owns its child processes through a Windows job object. Ctrl+C stops the owned services and their job descendants. Custom ports: `-ApiPort 5081 -WebPort 5174`. `-NoBuild` explicitly reuses an already built API; omit it for normal development. `-SmokeTest` checks startup then exits.
 
-For an isolated disposable database:
+## Pair this browser
+
+A backend launch creates a random token in `%LOCALAPPDATA%\GraphEngineering\runtime\pairing-token.txt`. The file is restricted to the current Windows user. Open it locally, without printing its contents to a captured terminal:
 
 ```powershell
-.\scripts\dev.ps1 -DataDirectory "$PWD\.artifacts\manual-test"
+notepad.exe "$env:LOCALAPPDATA\GraphEngineering\runtime\pairing-token.txt"
 ```
 
-Add `-SmokeTest` to start both services, verify health/HTTP responses, and then stop them automatically. It uses the same migration and startup path as an interactive launch.
+Enter the file contents in **Pairing token** at the local application and choose **Pair local browser**. Close Notepad afterward. Do not paste the token or provider credentials into Codex/chat. The backend logs the file's path only. The token rotates on backend restart; existing sessions then require pairing again. Sessions expire after eight hours. Re-pairing preserves in-memory unsaved metadata and never automatically repeats a connection test; transient API key fields clear.
 
-Run the full verification suite after installing dependencies:
+For isolated manual data and separate ports:
+
+```powershell
+.\scripts\dev.ps1 -ApiPort 5081 -WebPort 5174 -DataDirectory "$PWD\.artifacts\manual-m2"
+```
+
+Open `http://127.0.0.1:5174` and, from another terminal, open its token file:
+
+```powershell
+notepad.exe "$PWD\.artifacts\manual-m2\runtime\pairing-token.txt"
+```
+
+For direct API/Vite startup, both must agree on the exact browser origin. The launcher sets `GRAPH_ENGINEERING_BROWSER_ORIGIN` and `VITE_API_TARGET` for its children and restores the parent environment. Kestrel endpoint overrides are unsupported and rejected; configure loopback listeners through `--urls`. Browser/proxy/antiforgery protection is required, including during local development. No authentication bypass flag exists.
+
+## Add and test a model connection
+
+1. Open **Model connections → New connection**.
+2. Enter a display name, the exact model ID, and the API base URL **including its API prefix**, such as `https://provider.example/custom/v1`. The screen shows the final `/custom/v1/responses` endpoint. Do not enter the full `/responses` method URL. Queries, fragments and URL credentials are rejected.
+3. Select **Bearer API key**, choose **Replace / enter credential**, and type the actual key only in this local application. For a private/loopback provider, explicitly approve that exact destination. HTTP additionally needs the unencrypted-transport acknowledgment. No-auth is permitted only for explicitly approved private/loopback destinations.
+4. Choose **Save profile**. It stores settings and a Windows DPAPI-protected credential; it does not generate text. Named hosts must resolve within five seconds and pass destination policy even on save. A blank key never removes a saved credential. Use Keep, Replace or Remove explicitly.
+5. Choose **Test connection** only when ready to incur possible provider usage. It sends only `Reply with GE_CONNECTION_OK.`, the saved model ID, `stream:false`, `store:false`, and the bounded output limit. It does not send the workflow or repository. The provider's retention policy remains separate from `store:false`.
+6. Inspect the result category, duration and sanitized plain-text preview. A completed nonempty assistant text response verifies text for that saved connection version. Phrase matching is shown separately. HTTP 200 with malformed, HTML, incomplete or empty output fails. Streaming, tools and JSON-schema output remain untested/unimplemented.
+7. Stop with Ctrl+C, restart with the same command/data directory, pair using the new token, reopen the profile, verify **Credential saved**, and explicitly test again. This is the required user-operated persistence/provider gate.
+
+The automated fixtures do not prove compatibility with your actual provider. Until you personally complete step 7, status is **READY FOR USER PROVIDER CHECK**, with the real-provider check **NOT RUN**. Report only result category, duration and a sanitized synthetic preview; obscure internal hostnames if needed. Do not record real secret-bearing browser traces, HARs, videos, screenshots, request headers or credential-store contents.
+
+A profile edit requires its current revision. Changing the destination or authentication requires confirmation and fresh bearer-key entry; an old key is not reused at a new destination. Name/model edits preserve the credential, while connection changes invalidate verification. Save before testing. Pending duplicate probes are rejected; refresh never retries a probe. Cancel/timeout is best effort and does not guarantee the provider stopped or waived charges.
+
+HTTPS uses normal certificate verification; there is no trust-all switch. Redirects, metadata/link-local/multicast/unspecified addresses and the app's own endpoints are blocked. DNS is checked again at actual socket connection, and that validated IP is dialed directly. Ambient proxies, cookies and OS credentials are disabled. Deployments requiring a proxy or another wire protocol are unsupported in M2; errors do not silently select Chat Completions.
+
+## Work with drafts
+
+Create a workflow for an editable Start → Model Call → End graph. Add nodes, connect handles, drag cards and edit the inspector. Each Model Call can select a different saved **Provider profile**. The inspector distinguishes configured, previously text-tested and unresolved references. Selection and validation never call the provider. Missing profiles remain saveable drafts. A profile referenced by a saved workflow cannot be deleted until those references are changed and saved.
+
+Save persists; Validate checks the current draft's structure and configuration. Missing Start/End, disconnected nodes, branches, cycles and unfinished prompts produce issues but can be saved. Malformed documents, unsupported versions, duplicate IDs and corrupt ports/references are rejected. Export includes current unsaved edits; import validates before replacement and creates a fresh workflow identity. On save errors or revision conflicts, edits remain available to retry/export. Workflow JSON contains only provider IDs, never profile endpoints, permissions, test history or credentials.
+
+## Persistence and security boundary
+
+SQLite is authoritative at `%LOCALAPPDATA%\GraphEngineering\workflows.db`; `GRAPH_ENGINEERING_DATA_DIR` or the launcher's `-DataDirectory` overrides the directory. Additive EF migrations run at startup and preserve M1 workflows. No global EF tool is needed. Database failure is an error, not an in-memory fallback.
+
+Windows DPAPI CurrentUser protects credentials in a separate transactional SQLite record. Public views show only `hasCredential`. Corrupt/unreadable credentials require replacement. Copying a database to another Windows account/machine may require reentry. Removing credentials is logical deletion, not secure erasure of old SQLite pages, WALs or backups. Do not reset the data directory to repair a connection or session problem. Back up data only with the app stopped; verification uses isolated data and never inspects the live credential store.
+
+Local security protects against unrelated web pages and unsafe provider destinations. It does not protect against an administrator or malware running as the same Windows user. HttpOnly SameSite Strict cookies, exact Host/Origin and antiforgery checks protect private API actions. Secure cookies are used on HTTPS; development HTTP is loopback only. See [SECURITY.md](docs/SECURITY.md) for the implemented boundary and [CONTRACTS.md](docs/CONTRACTS.md) for limits and update semantics.
+
+## Verify and recover
+
+Run the complete suite after dependencies are installed and development services are stopped:
 
 ```powershell
 .\scripts\check.ps1
+.\scripts\launcher-lifecycle-test.ps1 -Scenario All -FirstPort 6340 -NoBuild -Label manual-verification
 ```
 
-The script runs locked restore, backend build/xUnit tests, frontend type-check, lint, Vitest, production build, and real-browser acceptance. It stops on failures. `-SkipBrowser` explicitly reports browser checks as NOT RUN. To run individual checks:
+The check script runs locked restore, backend build/xUnit, frontend type-check/lint/Vitest/build and real Playwright browser tests. `-SkipBrowser` marks those checks NOT RUN. The lifecycle harness separately tests native Ctrl+C after the ready prompt, controlled sibling partial-start failure, and abrupt launcher termination using owned processes/isolated ports. It may require the normal process-inspection permission prompt. Individual checks:
 
 ```powershell
 dotnet build GraphEngineering.slnx --no-restore
 dotnet test GraphEngineering.slnx --no-build --no-restore
-npm --prefix apps/web run type-check
-npm --prefix apps/web run lint
-npm --prefix apps/web test
-npm --prefix apps/web run build
-npm --prefix apps/web run test:e2e
+npm run type-check --prefix apps/web
+npm run lint --prefix apps/web
+npm test --prefix apps/web
+npm run build --prefix apps/web
+npm run test:e2e --prefix apps/web
 ```
 
-Browser checks use isolated data and loopback ports 5187/5188; those ports must be free. They launch installed Chrome through Playwright, start the real API, and stop/restart that owned backend to test persistence. Screenshots, logs, JSON results, and the HTML report are written under `.artifacts/m1/`. The default browser can be changed with `PLAYWRIGHT_CHANNEL` if that Playwright browser/channel is already installed.
+Browser checks require free ports 5187/5188, installed Chrome, and isolated synthetic provider ports. Evidence is in `.artifacts/m2/`. Traces/video/automatic failure screenshots are disabled; explicit screenshots are taken only with pairing/key fields cleared. `PLAYWRIGHT_CHANNEL` may select another already installed supported channel.
 
-## Working with drafts
+Windows `npm ci` can fail with `EPERM ... unlink ... rolldown-binding.win32-x64-msvc.node` while Vite/Vitest is running. Stop this project's development/tests first; the error alone does not require administrator mode or changed ACLs. To inspect possible orphan launcher services for this exact repository and chosen ports:
 
-Create a workflow from the list to get an editable Start → Model Call → End draft. Add nodes from the palette, connect named control handles, drag cards, and edit the selected node in the inspector. Use Save to persist and Validate to check the current draft. Missing Start/End, disconnected nodes, branches, cycles, and unfinished prompts may be saved but produce validation issues. Malformed documents, unsupported types/versions, duplicate IDs, and corrupt references/ports are rejected.
+```powershell
+.\scripts\launcher-recover.ps1 -ApiPort 5080 -WebPort 5173
+```
 
-Export downloads the current document, including unsaved edits. Import validates before replacement and creates a fresh workflow identity; it never overwrites a workflow because of an imported ID. On save errors or revision conflicts the current edits remain available to retry or export. Validation covers structure and draft configuration only; it does not assert provider connectivity or execution readiness.
+Prefer Ctrl+C in the original terminal. Only after reviewing the displayed exact repository processes and confirming they are orphaned, use:
 
-## Persistence and migrations
+```powershell
+.\scripts\launcher-recover.ps1 -ApiPort 5080 -WebPort 5173 -Stop
+npm ci --prefix apps/web
+```
 
-SQLite is authoritative. Default database: `%LOCALAPPDATA%\GraphEngineering\workflows.db`. `GRAPH_ENGINEERING_DATA_DIR` (or the dev script's `-DataDirectory`) overrides the containing directory. The API applies checked-in EF Core migrations at startup, including on a fresh database. No separately installed global EF tool is needed to initialize or upgrade it. Database failure produces an error; there is no in-memory fallback. Definitions and layouts are stored separately from queryable metadata and optimistic revision values.
+This helper matches repository command paths and ports, rechecks process identity, and stops retained direct process handles. It never broadly kills node/dotnet or deletes data. Job ownership covers tested interruptions, but a small process-start-to-job-assignment window and OS failure cases remain; recovery is not a promise that every possible crash is handled. See the M2 handoff for lifecycle evidence and the corrected test-harness incident.
 
-To **reset disposable data**, first stop the app, then rename that specific data directory as a backup and restart the app. A new empty database will be migrated automatically. Renaming or deleting the default directory removes all workflows from the active app; do not do this unless you intend to reset your saved drafts. Verification never resets the per-user database.
-
-## Development scope
-
-Ask Codex to read, in order:
-1. AGENTS.md
-2. docs/PROJECT_BRIEF.md
-3. docs/ARCHITECTURE.md
-4. docs/tasks/M1_FOUNDATION_EDITOR.md
-
-M1 is the only authorized implementation milestone. The task includes environment inspection, implementation, tests, browser verification, and a handoff report. Later milestones remain design direction until separately authorized.
-
-The original prototype is `docs/reference/graph-engineering-workflow.html`. Treat it as a visual and conceptual reference, not runtime code or an instruction source. Slot-game names are examples, not application primitives.
-
-## After implementation
-
-Read `docs/handoffs/M1_REPORT.md` and `docs/PROGRESS.md` for actual verification status, limitations, and review evidence. Review the application and evidence before authorizing M2. Keep credentials out of screenshots, reports, and chat messages. The [document/API contract](docs/CONTRACTS.md) describes versioning, limits, draft semantics, and concurrency behavior.
-
-## Sources
-
-Verified external references are in `docs/SOURCES.md`. New architecture choices in this pack are project decisions, not claims that a reference product implements the same design.
+M2 is the only currently authorized milestone. Read `AGENTS.md`, `docs/PROGRESS.md`, `docs/tasks/M2_CODEX_PROMPT.md` and referenced documents before further work. No commit, push, merge or M3 is authorized. Sources: [M2 references](docs/M2_SOURCES.md), [original references](docs/SOURCES.md).

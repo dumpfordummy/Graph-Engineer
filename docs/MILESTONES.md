@@ -2,15 +2,15 @@
 
 Implement one milestone at a time. Completion is based on demonstrated behavior and test evidence, not a feature checklist marked by the implementing agent.
 
-## M1 — Foundation and persistent editor (AUTHORIZED NOW)
+## M1 — Foundation and persistent editor (conditionally accepted for progression)
 
 Build the repository, local API/database, workflow list/editor, node inspector, save/load, document export/import, and structural validation for Start/Model Call/End. No provider calls, credential entry, commands, or execution simulation.
 
 Gate: create and edit a workflow; save; restart both services; reopen and verify node configuration, edges, positions, and metadata. Demonstrate validation, import/export, save-error recovery, and stale-revision handling. See the detailed M1 task.
 
-## M2 — Provider setup and local security
+## M2 — Provider setup and local security (AUTHORIZED NOW)
 
-Implement provider profiles, secure secret storage, local request/session protections, endpoint validation, and a real connection test. Select one initial protocol using an actual non-sensitive provider test; add Responses or Chat Completions independently rather than pretending they are interchangeable. The user enters secrets through the local app, never through a Codex prompt.
+Implement provider profiles, secure secret storage, local request/session protections, endpoint validation, and a real connection test. The authorized initial protocol is Responses only, as specified in docs/tasks/M2_PROVIDERS_SECURITY.md; the final deployment check is user-operated. The user enters secrets through the local app, never through a Codex prompt.
 
 Gate: a real test succeeds; incorrect credentials and unreachable endpoints show sanitized errors; profile updates preserve secrets; no secret appears in normal GETs, exports, logs, or child environments. Automated tests use synthetic credentials and controlled fixtures. Real credential verification is explicitly reported separately.
 

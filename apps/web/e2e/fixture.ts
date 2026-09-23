@@ -1,21 +1,40 @@
-import { test as base, expect } from '@playwright/test'
+import { test as base, expect, type APIRequestContext } from '@playwright/test'
 import { spawn, type ChildProcess } from 'node:child_process'
 import { once } from 'node:events'
 import { createWriteStream } from 'node:fs'
-import { access, mkdir, writeFile } from 'node:fs/promises'
+import { access, mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { setTimeout as delay } from 'node:timers/promises'
 
 export const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')
-export const artifacts = path.join(repositoryRoot, '.artifacts/m1')
+export const artifacts = path.join(repositoryRoot, '.artifacts/m2')
 export const apiBase = 'http://127.0.0.1:5187/api'
 
-type Backend = { restart: () => Promise<{ previousPid: number; nextPid: number }>; dataDirectory: string }
+type Session = { state: Awaited<ReturnType<APIRequestContext['storageState']>>; csrfToken: string }
+type Backend = {
+  restart: () => Promise<{ previousPid: number; nextPid: number }>
+  dataDirectory: string
+  session: () => Promise<Session>
+  pairRequest: (request: APIRequestContext) => Promise<string>
+}
 
 export const test = base.extend<object, { backend: Backend }>({
-  backend: [async ({ browserName }, use, workerInfo) => {
+  request: async ({ playwright, backend }, use) => {
+    const session = await backend.session()
+    const request = await playwright.request.newContext({
+      storageState: session.state,
+      extraHTTPHeaders: { Origin: 'http://127.0.0.1:5188', 'X-GE-CSRF': session.csrfToken },
+    })
+    await use(request)
+    await request.dispose()
+  },
+  page: async ({ page, backend }, use) => {
+    await page.context().addCookies((await backend.session()).state.cookies)
+    await use(page)
+  },
+  backend: [async ({ browserName, playwright }, use, workerInfo) => {
     const dataDirectory = path.join(artifacts, `e2e-${Date.now()}-${workerInfo.workerIndex}-${browserName}`)
     await mkdir(dataDirectory, { recursive: true })
     const dll = path.join(repositoryRoot, 'src/GraphEngineering.Api/bin/Debug/net10.0/GraphEngineering.Api.dll')
@@ -26,6 +45,23 @@ export const test = base.extend<object, { backend: Backend }>({
     const frontendLog = createWriteStream(path.join(dataDirectory, 'frontend.log'), { flags: 'a' })
     let processHandle: ChildProcess | undefined
     let frontendProcess: ChildProcess | undefined
+    let currentSession: Session | undefined
+    async function pairRequest(request: APIRequestContext) {
+      const token = (await readFile(path.join(dataDirectory, 'runtime/pairing-token.txt'), 'utf8')).trim()
+      const result = await request.post(`${apiBase}/session/pair`, { data: { token }, headers: { Origin: 'http://127.0.0.1:5188' } })
+      if (!result.ok()) throw new Error(`Isolated pairing failed with status ${result.status()}`)
+      const status = await (await request.get(`${apiBase}/session`)).json() as { csrfToken: string }
+      return status.csrfToken
+    }
+    async function session(): Promise<Session> {
+      if (currentSession) return currentSession
+      const bootstrap = await playwright.request.newContext({ extraHTTPHeaders: { Origin: 'http://127.0.0.1:5188' } })
+      try {
+        const csrfToken = await pairRequest(bootstrap)
+        currentSession = { csrfToken, state: await bootstrap.storageState() }
+        return currentSession
+      } finally { await bootstrap.dispose() }
+    }
 
     async function start() {
       processHandle = spawn('dotnet', [dll], {
@@ -36,6 +72,7 @@ export const test = base.extend<object, { backend: Backend }>({
           ASPNETCORE_ENVIRONMENT: 'Development',
           ASPNETCORE_URLS: 'http://127.0.0.1:5187',
           GRAPH_ENGINEERING_DATA_DIR: dataDirectory,
+          GRAPH_ENGINEERING_BROWSER_ORIGIN: 'http://127.0.0.1:5188',
         },
         stdio: ['ignore', 'pipe', 'pipe'],
       })
@@ -97,10 +134,13 @@ export const test = base.extend<object, { backend: Backend }>({
       await startFrontend()
       await use({
         dataDirectory,
+        session,
+        pairRequest,
         restart: async () => {
           const previousPid = processHandle!.pid!
           await stop()
           const nextPid = await start()
+          currentSession = undefined
           const evidence = { previousPid, nextPid, dataDirectory, restartedAt: new Date().toISOString() }
           await writeFile(path.join(artifacts, 'backend-restart.json'), JSON.stringify(evidence, null, 2))
           return { previousPid, nextPid }
