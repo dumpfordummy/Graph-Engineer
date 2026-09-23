@@ -105,7 +105,7 @@ test('create, configure and connect two models; save, reload and restart the rea
   await page.getByRole('button', { name: 'Validate', exact: true }).click()
   await expect(page.getByTestId('validation-panel').getByText('Structure valid', { exact: true })).toBeVisible()
   await expect(page.getByTestId('validation-panel')).toContainText('No structural or draft configuration issues found.')
-  await expect(page.getByRole('button', { name: /Run/ })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Run workflow', exact: true })).toBeDisabled()
   let persisted = await save(page)
   expect(persisted.definition).toEqual(draft.definition)
   expect(persisted.layout).toEqual(draft.layout)

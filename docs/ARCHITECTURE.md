@@ -20,7 +20,7 @@ docs/
 
 Create only useful projects. Core contains document contracts and pure graph validation. Api contains HTTP endpoints, EF Core/SQLite persistence, and feature-specific infrastructure. Do not add empty Application, Infrastructure, Domain, Contracts, Workers, and SharedKernel projects preemptively.
 
-Use Vite's development proxy for /api and, later, /hubs. Bind both development hosts to loopback. Use the installed, supported Node LTS that meets the selected Vite requirements. Pin an installed .NET 10 SDK in global.json and record actual versions in docs/ENVIRONMENT.md. No .NET preview or silently falling back to an unsupported target.
+Use Vite's development proxy for /api and /hubs (WebSockets). Bind both development hosts to loopback. Use the installed, supported Node LTS that meets the selected Vite requirements. Pin an installed .NET 10 SDK in global.json and record actual versions in docs/ENVIRONMENT.md. No .NET preview or silently falling back to an unsupported target.
 
 ## Separate data models
 

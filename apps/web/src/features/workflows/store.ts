@@ -36,6 +36,16 @@ export const useWorkflowStore = defineStore('workflow', () => {
     const node = document.value?.definition.nodes.find(node => node.id === id)
     if (node) { update(node); changed() }
   }
+  function upgradeNode(id: string) {
+    if (!document.value) return
+    const index = document.value.definition.nodes.findIndex(node => node.id === id)
+    const node = document.value.definition.nodes[index]
+    if (!node || node.typeVersion !== 1 || node.type === 'start') return
+    document.value.definition.nodes[index] = node.type === 'modelCall'
+      ? { ...node, typeVersion: 2, configuration: { ...node.configuration, promptMode: 'literal', inputBindings: [], outputMode: 'text' } }
+      : { ...node, typeVersion: 2, configuration: { ...node.configuration, resultBinding: null } }
+    changed()
+  }
   function addNode(type: NodeType, position?: { x: number; y: number }) {
     if (!document.value) return
     if (document.value.definition.nodes.length >= 200) { error.value = 'A document can contain at most 200 nodes.'; return }
@@ -126,7 +136,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
   }
   function selectNode(id: string) { selection.value = { kind: 'node', id } }
   function selectEdge(id: string) { selection.value = { kind: 'edge', id } }
-  return { document, persisted, dirty, loading, saving, validating, importing, error, notice, selection, selectedNode, selectedEdge, validation, validationStale, status, createNew, load, setMetadata, updateNode, addNode, moveNodes, setViewport, connect, deleteItems, deleteSelection, save, validate, importText, selectNode, selectEdge }
+  return { document, persisted, dirty, loading, saving, validating, importing, error, notice, selection, selectedNode, selectedEdge, validation, validationStale, status, createNew, load, setMetadata, updateNode, upgradeNode, addNode, moveNodes, setViewport, connect, deleteItems, deleteSelection, save, validate, importText, selectNode, selectEdge }
 })
 function message(cause: unknown): string { return cause instanceof Error ? cause.message : 'An unexpected error occurred. Your draft is preserved.' }
 export function edgeDescription(edge: WorkflowEdge, nodes: WorkflowNode[]): string {

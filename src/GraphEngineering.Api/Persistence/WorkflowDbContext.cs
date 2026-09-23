@@ -2,6 +2,7 @@ using System.Text.Json;
 using GraphEngineering.Core.Documents;
 using GraphEngineering.Api.Providers;
 using Microsoft.EntityFrameworkCore;
+using GraphEngineering.Api.Runs;
 
 namespace GraphEngineering.Api.Persistence;
 
@@ -10,9 +11,13 @@ public sealed class WorkflowDbContext(DbContextOptions<WorkflowDbContext> option
     public DbSet<WorkflowRecord> Workflows => Set<WorkflowRecord>();
     public DbSet<ProviderRecord> ProviderProfiles => Set<ProviderRecord>();
     public DbSet<ProviderCredential> ProviderCredentials => Set<ProviderCredential>();
+    public DbSet<RunRecord> Runs => Set<RunRecord>();
+    public DbSet<RunEventRecord> RunEvents => Set<RunEventRecord>();
+    public DbSet<RunArtifactRecord> RunArtifacts => Set<RunArtifactRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        RunModel.Configure(modelBuilder);
         var entity = modelBuilder.Entity<WorkflowRecord>();
         entity.ToTable("Workflows");
         entity.HasKey(workflow => workflow.Id);

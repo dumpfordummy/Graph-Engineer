@@ -9,12 +9,13 @@ import { fileURLToPath } from 'node:url'
 import { setTimeout as delay } from 'node:timers/promises'
 
 export const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')
-export const artifacts = path.join(repositoryRoot, '.artifacts/m2')
+export const artifacts = path.join(repositoryRoot, '.artifacts/m3')
 export const apiBase = 'http://127.0.0.1:5187/api'
 
 type Session = { state: Awaited<ReturnType<APIRequestContext['storageState']>>; csrfToken: string }
 type Backend = {
   restart: () => Promise<{ previousPid: number; nextPid: number }>
+  restartFrontend: () => Promise<void>
   dataDirectory: string
   session: () => Promise<Session>
   pairRequest: (request: APIRequestContext) => Promise<string>
@@ -136,6 +137,7 @@ export const test = base.extend<object, { backend: Backend }>({
         dataDirectory,
         session,
         pairRequest,
+        restartFrontend: async () => { await stop(frontendProcess); await startFrontend() },
         restart: async () => {
           const previousPid = processHandle!.pid!
           await stop()

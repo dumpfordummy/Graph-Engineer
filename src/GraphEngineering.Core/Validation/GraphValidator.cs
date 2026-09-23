@@ -30,8 +30,8 @@ public static class GraphValidator
             var path = $"definition.nodes[{i}]";
             if (string.IsNullOrWhiteSpace(node.Name)) Add("empty_node_name", "Give this node a name.", path + ".name", node.Id);
             if (node.Type == "modelCall" && string.IsNullOrWhiteSpace(node.Configuration.GetProperty("prompt").GetString())) Add("empty_prompt", "Write a prompt for this Model Call.", path + ".configuration.prompt", node.Id);
-            if (outgoing[node.Id].Count > 1) Add("unsupported_branch", "M1 supports one outgoing connection per node. Remove this branch.", path, node.Id);
-            if (incoming[node.Id] > 1) Add("unsupported_merge", "M1 supports one incoming connection per node. Remove this merge.", path, node.Id);
+            if (outgoing[node.Id].Count > 1) Add("unsupported_branch", "A linear workflow supports one outgoing connection per node. Remove this branch.", path, node.Id);
+            if (incoming[node.Id] > 1) Add("unsupported_merge", "A linear workflow supports one incoming connection per node. Remove this merge.", path, node.Id);
             if (incoming[node.Id] == 0 && outgoing[node.Id].Count == 0) Add("disconnected_node", "Connect this node to the workflow path.", path, node.Id);
         }
 

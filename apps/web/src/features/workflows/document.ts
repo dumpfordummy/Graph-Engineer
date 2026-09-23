@@ -1,9 +1,13 @@
 export type NodeType = 'start' | 'modelCall' | 'end'
+export type BindingSource = { kind: 'runInput'; pointer: string } | { kind: 'nodeText'; nodeId: string } | { kind: 'nodeJson'; nodeId: string; pointer: string }
+export interface InputBinding { alias: string; source: BindingSource }
 export interface WorkflowMetadata { id: string; name: string; description: string; revision: number; createdAt: string; updatedAt: string }
 export type WorkflowNode =
   | { id: string; type: 'start'; typeVersion: 1; name: string; description: string; configuration: { sampleInput: string } }
   | { id: string; type: 'modelCall'; typeVersion: 1; name: string; description: string; configuration: { prompt: string; providerProfileId?: string | null } }
   | { id: string; type: 'end'; typeVersion: 1; name: string; description: string; configuration: { resultReference: string } }
+  | { id: string; type: 'modelCall'; typeVersion: 2; name: string; description: string; configuration: { prompt: string; providerProfileId?: string | null; promptMode: 'literal' | 'bindings'; inputBindings: InputBinding[]; outputMode: 'text' | 'jsonObject' } }
+  | { id: string; type: 'end'; typeVersion: 2; name: string; description: string; configuration: { resultReference: string; resultBinding: BindingSource | null } }
 export interface WorkflowEdge { id: string; sourceNodeId: string; sourcePort: 'out'; targetNodeId: string; targetPort: 'in' }
 export interface Viewport { x: number; y: number; zoom: number }
 export interface WorkflowDocument {
@@ -14,7 +18,7 @@ export interface WorkflowDocument {
 }
 export interface ValidationIssue { code: string; severity: string; message: string; path: string; nodeId?: string; edgeId?: string }
 export interface ValidationReport { structurallyValid: boolean; valid: boolean; issues: ValidationIssue[]; scope: string }
-export const SCOPE = 'Structure and draft configuration only. Provider readiness is shown separately in the inspector. Validation never contacts a provider. Execution is unavailable until M3.'
+export const SCOPE = 'Structure and draft configuration only. Saved execution readiness is checked separately before Run. Validation never contacts a provider.'
 export const MAX_BYTES = 1_048_576
 export const nodeLabels: Record<NodeType, string> = { start: 'Start', modelCall: 'Model Call', end: 'End' }
 export function copyDocument(document: WorkflowDocument): WorkflowDocument { return JSON.parse(JSON.stringify(document)) as WorkflowDocument }
@@ -56,7 +60,7 @@ export function sampleDocument(): WorkflowDocument {
 
 // JSON.parse otherwise silently keeps the last duplicate property. Walk JSON tokens
 // after parsing syntax to reject ambiguous documents before any state is replaced.
-function rejectDuplicateProperties(text: string) {
+export function rejectDuplicateProperties(text: string) {
   const tokens = text.match(/"(?:\\.|[^"\\])*"|[{}[\]:,]|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null/g) ?? []
   let index = 0
   function value() {
@@ -131,13 +135,34 @@ export function assertDocument(raw: unknown): asserts raw is WorkflowDocument {
     string(node.id, `${path}.id`, 100, true)
     if (nodes.has(node.id)) fail(`${path}.id`, 'Duplicate node ID.')
     if (node.type !== 'start' && node.type !== 'modelCall' && node.type !== 'end') fail(`${path}.type`, 'Unsupported node type.')
-    if (node.typeVersion !== 1) fail(`${path}.typeVersion`, 'Only node type version 1 is supported.')
+    if (node.typeVersion !== 1 && !(node.typeVersion === 2 && node.type !== 'start')) fail(`${path}.typeVersion`, 'Unsupported node type version.')
     nodes.set(node.id, node.type as string)
     string(node.name, `${path}.name`, 120); string(node.description, `${path}.description`, 2000)
     const field = node.type === 'start' ? 'sampleInput' : node.type === 'modelCall' ? 'prompt' : 'resultReference'
-    const config = object(node.configuration, `${path}.configuration`, [field], node.type === 'modelCall' ? ['providerProfileId'] : [])
+    const configKeys = node.typeVersion === 2 ? (node.type === 'modelCall' ? [field, 'promptMode', 'inputBindings', 'outputMode'] : [field, 'resultBinding']) : [field]
+    const config = object(node.configuration, `${path}.configuration`, configKeys, node.type === 'modelCall' ? ['providerProfileId'] : [])
     string(config[field], `${path}.configuration.${field}`, field === 'resultReference' ? 2000 : 50000)
     if (Object.hasOwn(config, 'providerProfileId') && config.providerProfileId !== null) string(config.providerProfileId, `${path}.configuration.providerProfileId`, 120)
+    function bindingSource(rawSource: unknown, sourcePath: string) {
+      const candidate = rawSource as Record<string, unknown> | null
+      const kind = candidate?.kind
+      const keys = kind === 'runInput' ? ['kind', 'pointer'] : kind === 'nodeText' ? ['kind', 'nodeId'] : kind === 'nodeJson' ? ['kind', 'nodeId', 'pointer'] : []
+      if (!keys.length) fail(sourcePath, 'Unsupported binding source.')
+      const source = object(rawSource, sourcePath, keys)
+      if (kind !== 'runInput') string(source.nodeId, `${sourcePath}.nodeId`, 100)
+      if (kind !== 'nodeText') string(source.pointer, `${sourcePath}.pointer`, 2000)
+    }
+    if (node.typeVersion === 2 && node.type === 'modelCall') {
+      if (config.promptMode !== 'literal' && config.promptMode !== 'bindings') fail(`${path}.configuration.promptMode`, 'Expected literal or bindings.')
+      if (config.outputMode !== 'text' && config.outputMode !== 'jsonObject') fail(`${path}.configuration.outputMode`, 'Expected text or jsonObject.')
+      array(config.inputBindings, `${path}.configuration.inputBindings`, 32).forEach((rawBinding, index) => {
+        const bindingPath = `${path}.configuration.inputBindings[${index}]`
+        const binding = object(rawBinding, bindingPath, ['alias', 'source'])
+        string(binding.alias, `${bindingPath}.alias`, 64)
+        bindingSource(binding.source, `${bindingPath}.source`)
+      })
+    }
+    if (node.typeVersion === 2 && node.type === 'end' && config.resultBinding !== null) bindingSource(config.resultBinding, `${path}.configuration.resultBinding`)
   })
   const edgeIds = new Set<string>(), connections = new Set<string>()
   array(def.edges, 'definition.edges', 400).forEach((entry, i) => {

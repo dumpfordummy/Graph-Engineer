@@ -30,7 +30,7 @@ public sealed class WorkflowApiTests
         var db = scope.ServiceProvider.GetRequiredService<WorkflowDbContext>();
         Assert.Equal("Microsoft.EntityFrameworkCore.Sqlite", db.Database.ProviderName);
         Assert.Equal(System.IO.Path.Combine(data.Path, "workflows.db"), db.Database.GetDbConnection().DataSource);
-        Assert.Equal(2, (await db.Database.GetAppliedMigrationsAsync()).Count());
+        Assert.Equal(3, (await db.Database.GetAppliedMigrationsAsync()).Count());
         Assert.False(db.Database.HasPendingModelChanges());
         Assert.True(File.Exists(System.IO.Path.Combine(data.Path, "workflows.db")));
     }

@@ -130,7 +130,7 @@ test('two real profile selections round-trip without inference and saved referen
   await expect(page.getByLabel('Provider profile', { exact: true })).toHaveValue(first.id)
   await page.locator('[data-node-id="model-2"]').click()
   await expect(page.getByLabel('Provider profile', { exact: true })).toHaveValue(second.id)
-  await expect(page.getByRole('button', { name: /Run/ })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Run workflow', exact: true })).toBeDisabled()
   expect(provider.calls).toHaveLength(0)
   const removed = await request.delete(`${apiBase}/providers/${first.id}`, { data: { expectedRevision: first.revision } })
   expect(removed.status()).toBe(409)

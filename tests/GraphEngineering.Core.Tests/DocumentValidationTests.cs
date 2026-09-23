@@ -17,7 +17,7 @@ public sealed class DocumentValidationTests
         var parsed = DocumentFixture.Read(input);
         Assert.True(parsed.Success);
         Assert.True(GraphValidator.Validate(parsed).Valid);
-        Assert.Contains("Execution is unavailable", GraphValidator.Validate(parsed).Scope);
+        Assert.Contains("checked separately before a run", GraphValidator.Validate(parsed).Scope);
         var document = parsed.Document!;
         var serialized = JsonSerializer.SerializeToNode(document, DocumentJson.Options)!;
         Assert.True(JsonNode.DeepEquals(input["definition"], serialized["definition"]));
@@ -110,7 +110,7 @@ public sealed class DocumentValidationTests
         yield return Case("workflow.description", input => input["workflow"]!["description"] = null);
         yield return Case("runtime", input => input["runtime"] = new JsonObject());
         yield return Case("definition.nodes[1].type", input => DocumentFixture.Nodes(input)[1]!["type"] = "shell");
-        yield return Case("definition.nodes[1].typeVersion", input => DocumentFixture.Nodes(input)[1]!["typeVersion"] = 2);
+        yield return Case("definition.nodes[1].typeVersion", input => DocumentFixture.Nodes(input)[1]!["typeVersion"] = 3);
         yield return Case("definition.nodes[1].id", input => DocumentFixture.Nodes(input)[1]!["id"] = "start");
         yield return Case("definition.nodes[1].configuration.apiKey", input => DocumentFixture.Nodes(input)[1]!["configuration"]!["apiKey"] = "synthetic-only");
         yield return Case("definition.nodes[1].configuration.prompt", input => DocumentFixture.Nodes(input)[1]!["configuration"]!["prompt"] = 123);

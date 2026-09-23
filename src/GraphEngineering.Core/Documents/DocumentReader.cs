@@ -85,11 +85,12 @@ public static class DocumentReader
                     reader.Object(node, p, ["id", "type", "typeVersion", "name", "description", "configuration"]);
                     reader.Text(node, "id", p, 100, false);
                     reader.Text(node, "type", p, 30, false);
-                    reader.Integer(node, "typeVersion", p, 1, 1);
                     reader.Text(node, "name", p, 120);
                     reader.Text(node, "description", p, 2000);
                     var id = reader.StringValue(node, "id");
                     var type = reader.StringValue(node, "type");
+                    reader.Integer(node, "typeVersion", p, 1, type is "modelCall" or "end" ? 2 : 1);
+                    var version = reader.Child(node, "typeVersion", out var versionValue) && versionValue.ValueKind == JsonValueKind.Number && versionValue.TryGetInt32(out var parsedVersion) ? parsedVersion : 0;
                     if (id is not null && !nodeTypes.TryAdd(id, type ?? "")) reader.Error("duplicate_node_id", "Node IDs must be unique.", p + ".id", id);
                     if (type is not null && type is not ("start" or "modelCall" or "end")) reader.Error("unsupported_node_type", "Supported node types are start, modelCall, and end.", p + ".type", id);
                     if (!reader.Child(node, "configuration", out var config)) continue;
@@ -100,14 +101,32 @@ public static class DocumentReader
                             reader.Text(config, "sampleInput", p + ".configuration", 50_000);
                             break;
                         case "modelCall":
-                            reader.Object(config, p + ".configuration", ["prompt"], ["providerProfileId"]);
+                            reader.Object(config, p + ".configuration", version == 2 ? ["prompt", "promptMode", "inputBindings", "outputMode"] : ["prompt"], ["providerProfileId"]);
                             reader.Text(config, "prompt", p + ".configuration", 50_000);
                             if (reader.Child(config, "providerProfileId", out var provider) && provider.ValueKind != JsonValueKind.Null)
                                 reader.Text(config, "providerProfileId", p + ".configuration", 120);
+                            if (version == 2)
+                            {
+                                reader.Choice(config, "promptMode", p + ".configuration", ["literal", "bindings"]);
+                                reader.Choice(config, "outputMode", p + ".configuration", ["text", "jsonObject"]);
+                                if (reader.Array(config, "inputBindings", p + ".configuration", 32, out var bindings))
+                                {
+                                    var bindingIndex = 0;
+                                    foreach (var binding in bindings.EnumerateArray())
+                                    {
+                                        var bindingPath = p + $".configuration.inputBindings[{bindingIndex++}]";
+                                        reader.Object(binding, bindingPath, ["alias", "source"]);
+                                        reader.Text(binding, "alias", bindingPath, 64);
+                                        if (reader.Child(binding, "source", out var source)) ReadBindingSource(reader, source, bindingPath + ".source");
+                                    }
+                                }
+                            }
                             break;
                         case "end":
-                            reader.Object(config, p + ".configuration", ["resultReference"]);
+                            reader.Object(config, p + ".configuration", version == 2 ? ["resultReference", "resultBinding"] : ["resultReference"]);
                             reader.Text(config, "resultReference", p + ".configuration", 2000);
+                            if (version == 2 && reader.Child(config, "resultBinding", out var resultBinding) && resultBinding.ValueKind != JsonValueKind.Null)
+                                ReadBindingSource(reader, resultBinding, p + ".configuration.resultBinding");
                             break;
                     }
                 }
@@ -171,6 +190,21 @@ public static class DocumentReader
         return new(root.Deserialize<WorkflowDocument>(DocumentJson.Options), reader.Issues);
     }
 
+    private static void ReadBindingSource(ShapeReader reader, JsonElement source, string path)
+    {
+        var kind = reader.StringValue(source, "kind");
+        reader.Object(source, path, kind switch
+        {
+            "runInput" => ["kind", "pointer"],
+            "nodeText" => ["kind", "nodeId"],
+            "nodeJson" => ["kind", "nodeId", "pointer"],
+            _ => ["kind"]
+        });
+        reader.Choice(source, "kind", path, ["runInput", "nodeText", "nodeJson"]);
+        if (kind is "nodeText" or "nodeJson") reader.Text(source, "nodeId", path, 100);
+        if (kind is "runInput" or "nodeJson") reader.Text(source, "pointer", path, 2048);
+    }
+
     public sealed class ShapeReader
     {
         public List<ValidationIssue> Issues { get; } = [];
@@ -196,6 +230,12 @@ public static class DocumentReader
             if (value.ValueKind != JsonValueKind.String) { Error("invalid_type", "Expected a string.", Path(path, name)); return; }
             var text = value.GetString()!;
             if (text.Length > maximum || !allowEmpty && string.IsNullOrWhiteSpace(text)) Error("invalid_length", $"Use {(allowEmpty ? "0" : "1")} to {maximum} characters.", Path(path, name));
+        }
+        public void Choice(JsonElement element, string name, string path, string[] choices)
+        {
+            if (!Child(element, name, out var value)) return;
+            if (value.ValueKind != JsonValueKind.String || !choices.Contains(value.GetString(), StringComparer.Ordinal))
+                Error("invalid_choice", "Use one of: " + string.Join(", ", choices) + ".", Path(path, name));
         }
         public void Integer(JsonElement element, string name, string path, long minimum, long maximum)
         {

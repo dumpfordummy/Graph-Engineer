@@ -10,6 +10,18 @@ for (const origin of ['http://127.0.0.1:5187', 'http://127.0.0.1:5188']) {
       expect((await anonymous.get(`${origin}/api/providers`)).status()).toBe(401)
       expect((await anonymous.post(`${origin}/api/providers/${crypto.randomUUID()}/test`, { data: { expectedRevision: 1, connectionVersion: 1 } })).status()).toBe(401)
       expect((await paired.get(`${origin}/api/providers`)).status()).toBe(200)
+      const runId = crypto.randomUUID()
+      for (const route of ['/runs', `/runs/${runId}`, `/runs/${runId}/events`, `/runs/${runId}/artifacts/${crypto.randomUUID()}`, `/runs/submissions/${crypto.randomUUID()}`, `/workflows/${crypto.randomUUID()}/readiness`]) {
+        expect((await anonymous.get(`${origin}/api${route}`)).status()).toBe(401)
+        expect((await paired.get(`${origin}/api${route}`, { headers: { Origin: 'http://hostile.example' } })).status()).toBe(403)
+      }
+      for (const [route, data] of [[`/runs/${runId}/cancel`, {}], [`/workflows/${crypto.randomUUID()}/runs`, { submissionId: crypto.randomUUID(), expectedRevision: 1, input: {} }]] as const) {
+        expect((await anonymous.post(`${origin}/api${route}`, { data })).status()).toBe(401)
+        expect((await paired.post(`${origin}/api${route}`, { data, headers: { 'X-GE-CSRF': '' } })).status()).toBe(403)
+        expect((await paired.post(`${origin}/api${route}`, { data, headers: { Origin: 'null' } })).status()).toBe(403)
+      }
+      expect((await anonymous.post(`${origin}/hubs/runs/negotiate?negotiateVersion=1`)).status()).toBe(401)
+      expect((await paired.post(`${origin}/hubs/runs/negotiate?negotiateVersion=1`, { headers: { 'X-GE-CSRF': '' } })).status()).toBe(403)
       for (const hostileOrigin of ['http://hostile.example', 'null', 'http://localhost:5188']) {
         expect((await paired.get(`${origin}/api/providers`, { headers: { Origin: hostileOrigin } })).status()).toBe(403)
         expect((await paired.post(`${origin}/api/providers/${crypto.randomUUID()}/test`, {

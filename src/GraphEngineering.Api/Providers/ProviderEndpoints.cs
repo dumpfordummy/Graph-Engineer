@@ -1,6 +1,7 @@
 using System.Text.Json;
 using GraphEngineering.Api.Http;
 using GraphEngineering.Api.Persistence;
+using GraphEngineering.Api.Runs;
 using Microsoft.EntityFrameworkCore;
 
 namespace GraphEngineering.Api.Providers;
@@ -86,6 +87,8 @@ public static class ProviderEndpoints
         var record = await db.ProviderProfiles.SingleOrDefaultAsync(x => x.Id == id, token);
         if (record is null) return Missing();
         if (record.Revision != input.Value!.ExpectedRevision) return Conflict();
+        if (await RunState.ActiveProfileReferencedAsync(db, id, token))
+            return Problems.Create(409, "Profile is in an active run", "Wait for the admitted run to finish before deleting this profile. Editing the saved workflow does not remove its frozen run reference.");
         var definitions = await db.Workflows.AsNoTracking().Select(x => x.DefinitionJson).ToListAsync(token);
         foreach (var definition in definitions)
         {

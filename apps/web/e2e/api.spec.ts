@@ -23,7 +23,7 @@ test('semantic errors are actionable and saveable; broken ports are rejected', a
   expect(JSON.stringify(report.issues)).toMatch(/start/i)
   expect(JSON.stringify(report.issues)).toMatch(/end/i)
   expect(report.issues.every((issue: { path: string; message: string }) => issue.path && issue.message)).toBeTruthy()
-  expect(report.scope).toMatch(/execution readiness.*not checked/i)
+  expect(report.scope).toMatch(/execution readiness.*checked separately before a run/i)
   expect((await request.post(`${apiBase}/workflows`, { data: { document } })).status()).toBe(201)
 
   const broken = sampleDocument('Broken port')

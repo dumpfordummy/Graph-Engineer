@@ -155,7 +155,7 @@ public sealed class ProviderApiTests
         using var delete = new HttpRequestMessage(HttpMethod.Delete, Url(profile)) { Content = JsonContent.Create(new { expectedRevision = 1 }) };
         Assert.Equal(HttpStatusCode.Conflict, (await client.SendAsync(delete)).StatusCode);
         await using var scope = factory.Services.CreateAsyncScope(); var migrated = scope.ServiceProvider.GetRequiredService<WorkflowDbContext>();
-        Assert.Equal(2, (await migrated.Database.GetAppliedMigrationsAsync()).Count());
+        Assert.Equal(3, (await migrated.Database.GetAppliedMigrationsAsync()).Count());
         Assert.False(migrated.Database.HasPendingModelChanges());
     }
 

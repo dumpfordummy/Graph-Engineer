@@ -42,6 +42,7 @@ public static class LocalSecurity
             options.Events.OnRedirectToLogin = context => Failure(context.HttpContext, 401, "session_required", "Pair this browser with the running local application.");
             options.Events.OnRedirectToAccessDenied = context => Failure(context.HttpContext, 403, "security_rejected", "The local request was rejected.");
         });
+        services.AddAuthorization();
         services.AddAntiforgery(options =>
         {
             options.HeaderName = "X-GE-CSRF";
@@ -58,7 +59,8 @@ public static class LocalSecurity
         app.UseAuthentication();
         return app.Use(async (context, next) =>
         {
-            if (!context.Request.Path.StartsWithSegments("/api")) { await next(context); return; }
+            var hub = context.Request.Path.StartsWithSegments("/hubs");
+            if (!hub && !context.Request.Path.StartsWithSegments("/api")) { await next(context); return; }
             context.Response.Headers.CacheControl = "no-store";
             context.Response.Headers["X-Content-Type-Options"] = "nosniff";
             var launch = context.RequestServices.GetRequiredService<LocalLaunch>();
@@ -67,6 +69,11 @@ public static class LocalSecurity
             var origin = context.Request.Headers.Origin;
             if (origin.Count > 1 || origin.Count == 1 && !launch.Origins.Contains(origin.ToString()))
             { await Failure(context, 403, "origin_rejected", "This browser origin is not allowed."); return; }
+            // CORS does not protect the WebSocket handshake. Require its exact Origin too.
+            if (hub && origin.Count != 1)
+            { await Failure(context, 403, "origin_required", "A configured browser origin is required."); return; }
+            if (hub && context.Request.Query.ContainsKey("access_token"))
+            { await Failure(context, 403, "query_token_rejected", "Use the local browser cookie session."); return; }
             var safe = HttpMethods.IsGet(context.Request.Method) || HttpMethods.IsHead(context.Request.Method);
             var path = context.Request.Path.Value;
             var bootstrap = safe && path is "/api/health" or "/api/session" ||
@@ -75,7 +82,8 @@ public static class LocalSecurity
             {
                 if (origin.Count != 1)
                 { await Failure(context, 403, "origin_required", "A configured browser origin is required."); return; }
-                if (!context.Request.HasJsonContentType())
+                var negotiate = hub && HttpMethods.IsPost(context.Request.Method) && path == "/hubs/runs/negotiate";
+                if (!negotiate && !context.Request.HasJsonContentType())
                 { await Failure(context, 415, "json_required", "Use application/json for local state changes."); return; }
             }
             if (!bootstrap && context.User.Identity?.IsAuthenticated != true)

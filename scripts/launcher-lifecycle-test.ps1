@@ -8,7 +8,7 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) { throw 'This lifecycle test requires Windows.' }
 if ($Label -notmatch '^[a-zA-Z0-9-]+$') { throw 'Label must contain letters, numbers, or hyphens.' }
-$evidenceDirectory = Join-Path $repoRoot ".artifacts/m2/lifecycle-$Label-$([DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss'))"
+$evidenceDirectory = Join-Path $repoRoot ".artifacts/m3/lifecycle-$Label-$([DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss'))"
 New-Item -ItemType Directory -Path $evidenceDirectory -Force | Out-Null
 
 # Each launcher receives a separate hidden Windows console. CTRL_C_EVENT is sent
@@ -131,6 +131,11 @@ try {
 finally { Stop-Transcript | Out-Null }
 "@
     Set-Content -LiteralPath $wrapperPath -Value $wrapper
+    # This separately owned synthetic Node process is deliberately outside the
+    # launcher's Job Object. Cleanup must leave it alive in every scenario.
+    $sentinelPath = Join-Path $caseDirectory 'untargeted-synthetic.cjs'
+    Set-Content -LiteralPath $sentinelPath -Value 'setInterval(() => {}, 1000)'
+    $sentinel = [GraphEngineering.LifecycleConsole]::Start((Get-Command node.exe).Source, "`"$sentinelPath`"", $repoRoot)
     $launcher = [GraphEngineering.LifecycleConsole]::Start((Get-Command powershell.exe).Source, "-NoProfile -File `"$wrapperPath`"", $repoRoot)
     $owned = @()
     $descendants = @()
@@ -195,9 +200,12 @@ finally { Stop-Transcript | Out-Null }
         } while ([DateTime]::UtcNow -lt $deadline)
         if ($remainingIds.Count -gt 0 -or $remainingObservedDescendants.Count -gt 0 -or $listenersAfter.api -or $listenersAfter.web) { $failure = 'Owned services, observed descendants, or listeners remained after launcher exit.' }
         if ($case -eq 'PartialStart' -and $launcher.ExitCode -eq 0) { $failure = 'Controlled partial-start failure unexpectedly returned success.' }
+        $sentinel.Refresh()
+        if ($sentinel.HasExited) { $failure = 'The untargeted synthetic Node process did not survive launcher cleanup.' }
         $results += [pscustomobject]@{
             scenario = $case; result = $(if ($failure) { 'FAIL' } else { 'PASS' }); failure = $failure
             launcherId = $launcher.Id; launcherExitCode = $launcher.ExitCode
+            untargetedSyntheticId = $sentinel.Id; untargetedSyntheticSurvived = -not $sentinel.HasExited
             ownedServices = $owned; observedServiceDescendants = $descendants
             verifiedServiceIdentities = $verifiedServices
             excludedAmbiguousProcesses = $ambiguousProcesses
@@ -219,6 +227,10 @@ finally { Stop-Transcript | Out-Null }
             $handle.Dispose()
         }
         $launcher.Dispose()
+        # This is the exact synthetic process handle created by this harness,
+        # stopped only after its survival was recorded; no name/ancestry lookup.
+        if (-not $sentinel.HasExited) { $sentinel.Kill(); $sentinel.WaitForExit(10000) | Out-Null }
+        $sentinel.Dispose()
     }
     $results | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $evidenceDirectory 'results.json')
 }

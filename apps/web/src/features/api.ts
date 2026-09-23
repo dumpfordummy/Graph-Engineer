@@ -4,7 +4,7 @@ interface Problem { title?: string; detail?: string; code?: string; errors?: Rec
 export class ApiError extends Error {
   constructor(public status: number, message: string, public code?: string) { super(message); this.name = 'ApiError' }
 }
-export async function request<T>(path: string, method = 'GET', body?: unknown, signal?: AbortSignal): Promise<T> {
+export async function request<T>(path: string, method = 'GET', body?: unknown, signal?: AbortSignal, rawJson = false, decode?: (text: string) => T): Promise<T> {
   const headers: Record<string, string> = {}
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   if (method !== 'GET' && localSession.csrfToken) headers['X-GE-CSRF'] = localSession.csrfToken
@@ -12,7 +12,7 @@ export async function request<T>(path: string, method = 'GET', body?: unknown, s
   try {
     response = await fetch(`/api${path}`, {
       method, headers, credentials: 'same-origin', cache: 'no-store',
-      body: body === undefined ? undefined : JSON.stringify(body), signal,
+      body: body === undefined ? undefined : rawJson ? String(body) : JSON.stringify(body), signal,
     })
   } catch {
     if (signal?.aborted) throw new ApiError(0, 'Request cancelled. The provider may still finish work or charge for usage.')
@@ -25,10 +25,10 @@ export async function request<T>(path: string, method = 'GET', body?: unknown, s
     const fields = Object.entries(problem.errors ?? {}).map(([field, errors]) => `${field}: ${errors.join(' ')}`).join(' ')
     const message = response.status === 401 || response.status === 403
       ? 'Local access expired or was rejected. Pair again; your safe draft metadata is preserved. The request will not be replayed.'
-      : response.status === 409 && path.startsWith('/workflows')
+      : response.status === 409 && path.startsWith('/workflows') && method === 'PUT'
         ? 'Save conflict: this workflow changed in another tab. Your edits are preserved. Export your draft before reloading the latest version.'
         : [problem.detail ?? problem.title ?? `Request failed (${response.status}).`, fields].filter(Boolean).join(' ')
     throw new ApiError(response.status, message, problem.code)
   }
-  return response.status === 204 ? undefined as T : response.json() as Promise<T>
+  return response.status === 204 ? undefined as T : decode ? decode(await response.text()) : response.json() as Promise<T>
 }

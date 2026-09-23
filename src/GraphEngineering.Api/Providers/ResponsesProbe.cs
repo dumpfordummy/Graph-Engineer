@@ -8,21 +8,44 @@ using System.Text.Json;
 
 namespace GraphEngineering.Api.Providers;
 
+public sealed record ExecutionResponse(string Category, bool Success, string? Text, string Message,
+    string? ObservedModel, string? RequestId, TestUsage? Usage, string ExternalOutcome);
+
 public sealed class ResponsesProbe(ProviderDestinationPolicy policy)
 {
     public const int MaximumResponseBytes = 256 * 1024;
+    public const int MaximumTextBytes = 128 * 1024;
     public const string SyntheticInput = "Reply with GE_CONNECTION_OK.";
 
-    public async Task<TestResult> TestAsync(ProviderRecord profile, string? credential, CancellationToken cancellation)
+    public async Task<TestResult> TestAsync(ProviderRecord profile, string? credential, CancellationToken cancellation) =>
+        (await SendAsync(profile, credential, SyntheticInput, [], false, cancellation)).Result;
+
+    public async Task<ExecutionResponse> ExecuteAsync(ProviderRecord profile, string? credential, string prompt,
+        IReadOnlyCollection<string> activeCredentials, CancellationToken cancellation)
+    {
+        var response = await SendAsync(profile, credential, prompt, activeCredentials, true, cancellation);
+        var result = response.Result;
+        return new(result.Category, result.Success, result.Preview, result.Message, result.ObservedModel,
+            result.RequestId, result.Usage, response.ExternalOutcome);
+    }
+
+    private sealed record AdapterResult(TestResult Result, string ExternalOutcome);
+    private async Task<AdapterResult> SendAsync(ProviderRecord profile, string? credential, string prompt,
+        IReadOnlyCollection<string> activeCredentials, bool execution, CancellationToken cancellation)
     {
         var watch = Stopwatch.StartNew();
         var at = DateTimeOffset.UtcNow;
-        TestResult Result(string category, string message, string? preview = null, bool phrase = false,
+        var externalOutcome = "NotStarted";
+        AdapterResult Result(string category, string message, string? preview = null, bool phrase = false,
             string? model = null, string? requestId = null, TestUsage? usage = null) =>
-            new(at, profile.ConnectionVersion, category, category == "success", watch.ElapsedMilliseconds,
-                message, preview, phrase, model, requestId, usage);
+            new(new(at, profile.ConnectionVersion, category, category == "success", watch.ElapsedMilliseconds,
+                message, preview, phrase, model, requestId, usage), externalOutcome);
         try
         {
+            if (execution && Encoding.UTF8.GetByteCount(prompt) > 64 * 1024)
+                return Result("prompt_too_large", "The resolved prompt exceeds 64 KiB. No request was sent.");
+            if (execution && ContainsSensitive(prompt, activeCredentials))
+                return Result("sensitive_output", "Sensitive content was detected. No request was sent.");
             var destination = policy.Validate(profile.BaseUrl, profile.AllowPrivateNetwork, profile.AllowInsecureHttp, profile.AuthMode);
             using var handler = new SocketsHttpHandler
             {
@@ -37,11 +60,17 @@ public sealed class ResponsesProbe(ProviderDestinationPolicy policy)
             using var request = new HttpRequestMessage(HttpMethod.Post, destination.AbsoluteUri.TrimEnd('/') + "/responses")
             {
                 Version = HttpVersion.Version11, VersionPolicy = HttpVersionPolicy.RequestVersionExact,
-                Content = JsonContent.Create(new { model = profile.ModelId, input = SyntheticInput, stream = false, store = false, max_output_tokens = profile.MaxOutputTokens })
+                Content = JsonContent.Create(new { model = profile.ModelId, input = prompt, stream = false, store = false, max_output_tokens = profile.MaxOutputTokens })
             };
             if (profile.AuthMode == "bearer") request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", credential);
+            cancellation.ThrowIfCancellationRequested();
+            externalOutcome = "Unknown";
             using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
-            var requestId = Safe(response.Headers.TryGetValues("x-request-id", out var ids) ? ids.FirstOrDefault() : null, credential, 120);
+            externalOutcome = "ResponseReceived";
+            var rawRequestId = response.Headers.TryGetValues("x-request-id", out var ids) ? ids.FirstOrDefault() : null;
+            if (execution && ContainsSensitive(rawRequestId, activeCredentials))
+                return Result("sensitive_output", "The provider returned sensitive content. No output was retained or forwarded.");
+            var requestId = Safe(rawRequestId, credential, 120);
             if ((int)response.StatusCode is >= 300 and < 400)
                 return Result("rejected_request", "The provider redirected the request. Redirects are disabled; configure the final approved API base URL.", requestId: requestId);
             if (!response.IsSuccessStatusCode)
@@ -101,8 +130,12 @@ public sealed class ResponsesProbe(ProviderDestinationPolicy policy)
                 if (input.HasValue || outputCount.HasValue || total.HasValue) usage = new(input, outputCount, total);
             }
             var answer = text.ToString();
+            if (execution && (ContainsSensitive(answer, activeCredentials) || ContainsSensitive(Text(root, "model"), activeCredentials)))
+                return Result("sensitive_output", "The provider returned sensitive content. No output was retained or forwarded.");
+            if (execution && Encoding.UTF8.GetByteCount(answer) > MaximumTextBytes)
+                return Result("output_too_large", "The assistant text exceeded the 128 KiB limit.");
             return Result("success", "Completed assistant text was received for this saved connection version.",
-                Safe(answer, credential, 500), answer.Contains("GE_CONNECTION_OK", StringComparison.Ordinal),
+                execution ? answer : Safe(answer, credential, 500), answer.Contains("GE_CONNECTION_OK", StringComparison.Ordinal),
                 Safe(Text(root, "model"), credential, 200), requestId, usage);
         }
         catch (DestinationException) { return Result("invalid_configuration", "The destination is not permitted by its saved approvals or address policy."); }
@@ -116,6 +149,14 @@ public sealed class ResponsesProbe(ProviderDestinationPolicy policy)
         }
         catch (JsonException) { return Result("unexpected_payload", "The provider returned malformed or overly nested JSON."); }
         catch (IOException) { return Result("connectivity", "The provider connection ended before its response completed."); }
+    }
+
+    public static bool ContainsSensitive(string? value, IEnumerable<string> activeCredentials)
+    {
+        if (value is null) return false;
+        var normalized = new string(value.Where(character => !char.IsControl(character) || character is '\n' or '\t').ToArray());
+        return activeCredentials.Any(secret => !string.IsNullOrEmpty(secret) &&
+            (value.Contains(secret, StringComparison.Ordinal) || normalized.Contains(secret, StringComparison.Ordinal)));
     }
 
     private static bool Contains<T>(Exception error) where T : Exception => error is T || error.InnerException is not null && Contains<T>(error.InnerException);

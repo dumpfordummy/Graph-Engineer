@@ -3,6 +3,8 @@ using GraphEngineering.Api.Http;
 using GraphEngineering.Api.Persistence;
 using GraphEngineering.Api.Providers;
 using GraphEngineering.Api.Security;
+using GraphEngineering.Api.Runs;
+using GraphEngineering.Api.Notifications;
 using GraphEngineering.Core.Documents;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.Data.Sqlite;
@@ -12,6 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 // A local user must be able to report failures without Windows Event Log write privileges.
 builder.Logging.ClearProviders();
 builder.Logging.AddSimpleConsole();
+builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.Warning);
 var urls = builder.Configuration["urls"] ?? "http://127.0.0.1:5080";
 foreach (var url in urls.Split(';', StringSplitOptions.RemoveEmptyEntries))
 {
@@ -28,6 +31,8 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 builder.Services.AddProblemDetails();
 builder.Services.AddLocalSecurity();
 builder.Services.AddProviders();
+builder.Services.AddRuns();
+builder.Services.AddRunNotifications();
 builder.Services.AddDbContext<WorkflowDbContext>((services, options) =>
 {
     var configuration = services.GetRequiredService<IConfiguration>();
@@ -42,7 +47,9 @@ builder.Services.AddDbContext<WorkflowDbContext>((services, options) =>
     }.ToString();
     options.UseSqlite(connection);
 });
-var app = builder.Build();
+await using var app = builder.Build();
+try
+{
 var launch = app.Services.GetRequiredService<LocalLaunch>();
 app.Logger.LogInformation("Pair this browser using the local file {PairingFile}. Its contents must not be shared or logged.", launch.TokenPath);
 app.UseExceptionHandler(handler => handler.Run(async context =>
@@ -61,10 +68,24 @@ await using (var scope = app.Services.CreateAsyncScope())
     var db = scope.ServiceProvider.GetRequiredService<WorkflowDbContext>();
     await db.Database.MigrateAsync();
 }
+await app.Services.RecoverRunsAsync();
 app.UseLocalSecurity();
+app.UseAuthorization();
 app.MapLocalSession();
 app.MapWorkflowEndpoints();
 app.MapProviderEndpoints();
+app.MapRunEndpoints();
+app.MapRunNotifications();
 app.Run();
+}
+catch (Exception error)
+{
+    // Expected local startup failures must exit, rather than enter a Windows
+    // unhandled-exception dialog while retaining ownership or listener handles.
+    var detail = error is IOException && error.Message == "Another Graph Engineering backend owns this data directory."
+        ? error.Message : $"Check the local data-directory access, migrations and configured loopback ports ({error.GetType().Name}).";
+    Console.Error.WriteLine($"Local startup failed. {detail}");
+    Environment.ExitCode = 1;
+}
 
 public partial class Program;

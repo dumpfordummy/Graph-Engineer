@@ -13,9 +13,11 @@ public sealed class LocalLaunch : IDisposable
     public string TokenPath { get; }
     private readonly byte[] tokenHash;
     private readonly FileStream ownership;
+    private readonly DataDirectoryLease lease;
     private readonly object attemptLock = new();
     private DateTimeOffset windowStart = DateTimeOffset.UtcNow;
     private int attempts;
+    private int disposed;
 
     public LocalLaunch(IConfiguration configuration)
     {
@@ -24,22 +26,23 @@ public sealed class LocalLaunch : IDisposable
         var urls = configuration["urls"] ?? "http://127.0.0.1:5080";
         foreach (var url in urls.Split(';', StringSplitOptions.RemoveEmptyEntries)) AddOrigin(url);
         AddOrigin(configuration["GRAPH_ENGINEERING_BROWSER_ORIGIN"] ?? "http://127.0.0.1:5173");
-        // Create ordinary ancestors first; the restrictive ACL belongs to runtime itself,
-        // not to any missing shared parent directory supplied by the host/test runner.
-        Directory.CreateDirectory(DataDirectory(configuration));
-        var directory = RestrictedDirectory(Path.Combine(DataDirectory(configuration), "runtime"));
-        TokenPath = Path.Combine(directory.FullName, "pairing-token.txt");
-        // A second backend using this same database must not rotate a running instance's bootstrap.
-        ownership = new FileStream(Path.Combine(directory.FullName, "instance.lock"), FileMode.OpenOrCreate,
-            FileAccess.ReadWrite, FileShare.None);
-        var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
-        tokenHash = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(token));
+        lease = new DataDirectoryLease(DataDirectory(configuration));
         try
         {
+            // Ownership precedes directory ACLs, token rotation, migrations, and recovery.
+            Directory.CreateDirectory(DataDirectory(configuration));
+            var directory = Directory.CreateDirectory(Path.Combine(DataDirectory(configuration), "runtime"));
+            TokenPath = Path.Combine(directory.FullName, "pairing-token.txt");
+            // The file handle also excludes alternate filesystem aliases of the same directory.
+            ownership = new FileStream(Path.Combine(directory.FullName, "instance.lock"), FileMode.OpenOrCreate,
+                FileAccess.ReadWrite, FileShare.None);
+            RestrictedDirectory(directory.FullName);
+            var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+            tokenHash = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(token));
             RestrictExistingToken(TokenPath);
             File.WriteAllText(TokenPath, token);
         }
-        catch { ownership.Dispose(); throw; }
+        catch { ownership?.Dispose(); lease.Dispose(); throw; }
     }
 
     private void AddOrigin(string value)
@@ -76,7 +79,7 @@ public sealed class LocalLaunch : IDisposable
     public static DirectoryInfo RestrictedDirectory(string path)
     {
         if (!OperatingSystem.IsWindows())
-            throw new PlatformNotSupportedException("M2 local protected storage requires Windows.");
+            throw new PlatformNotSupportedException("Local protected storage requires Windows.");
         var owner = WindowsIdentity.GetCurrent().User ?? throw new InvalidOperationException("Windows user identity unavailable.");
         var security = new DirectorySecurity();
         security.SetOwner(owner);
@@ -103,8 +106,9 @@ public sealed class LocalLaunch : IDisposable
 
     public void Dispose()
     {
+        if (Interlocked.Exchange(ref disposed, 1) != 0) return;
         // Only our own launch owns this file while the exclusive instance handle is held.
         try { File.Delete(TokenPath); }
-        finally { ownership.Dispose(); }
+        finally { ownership.Dispose(); lease.Dispose(); }
     }
 }

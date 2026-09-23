@@ -4,7 +4,7 @@ import path from 'node:path'
 import process from 'node:process'
 
 const webRoot = path.dirname(fileURLToPath(import.meta.url))
-const artifacts = path.resolve(webRoot, '../../.artifacts/m2')
+const artifacts = path.resolve(webRoot, '../../.artifacts/m3')
 
 export default defineConfig({
   testDir: './e2e',
