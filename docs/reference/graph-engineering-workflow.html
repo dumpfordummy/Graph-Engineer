@@ -1,0 +1,2659 @@
+<!doctype html>
+<html lang="en" data-visualize-standalone>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Graph Engineering Slot Game</title>
+<style>:root {
+  color-scheme: light dark;
+  background-color: transparent !important;
+
+  /* Agent-facing contract; keep in sync with SKILL.md. */
+  --background: var(
+    --main-surface-primary,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --foreground: light-dark(rgb(26 28 31), rgb(255 255 255));
+  --card: color-mix(in oklab, var(--foreground) 5%, transparent);
+  --card-foreground: var(--foreground);
+  --popover: light-dark(rgb(255 255 255), rgb(45 45 45));
+  --popover-foreground: var(--foreground);
+  --primary: light-dark(rgb(51 156 255), rgb(131 195 255));
+  --primary-foreground: light-dark(rgb(255 255 255), rgb(13 13 13));
+  --secondary: light-dark(rgb(255 255 255 / 96%), rgb(54 54 54 / 96%));
+  --secondary-foreground: var(--foreground);
+  --muted: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --muted-foreground: light-dark(
+    rgb(26 28 31 / 49.4%),
+    rgb(255 255 255 / 49.8%)
+  );
+  --accent: light-dark(rgb(229 242 255), rgb(13 39 63));
+  --accent-foreground: var(--primary);
+  --destructive: light-dark(rgb(226 85 7), rgb(255 133 73));
+  --border: light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%));
+  --input: light-dark(
+    rgb(26 28 31 / 11.8%),
+    color-mix(in oklab, rgb(0 0 0) 10%, transparent)
+  );
+  --ring: light-dark(rgb(51 156 255), rgb(131 195 255 / 76%));
+  --font-size-base: 14px;
+  --red: light-dark(rgb(186 38 35), rgb(250 66 62));
+  --green: light-dark(rgb(0 162 64), rgb(64 201 119));
+
+  /* Internal implementation variables; not part of the agent contract. */
+  --font-sans: -apple-system, system-ui, "Segoe UI", sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
+    monospace;
+  --font-size-normal: max(11px, var(--font-size-base));
+  --font-size-tooltip: calc(var(--font-size-base) - 1px);
+  --font-size-small: max(11px, calc(var(--font-size-base) - 2px));
+  --font-size-h1: calc(var(--font-size-normal) * 1.7142857143);
+  --font-size-h2: calc(var(--font-size-normal) * 1.4285714286);
+  --font-size-h3: calc(var(--font-size-normal) * 1.2857142857);
+  --font-weight-normal: 430;
+  --font-weight-medium: 500;
+  --line-height-normal: calc(var(--font-size-normal) * 1.5);
+  --line-height-tooltip: calc(var(--font-size-tooltip) * 1.4285714286);
+  --line-height-small: calc(var(--font-size-small) + 4px);
+  --radius: 10px;
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-2xl: calc(var(--radius) * 1.6);
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 2px -1px rgb(0 0 0 / 8%);
+  --checkmark-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 17 17'%3E%3Cpath d='M12.8961 3.64101C13.1297 3.41418 13.4984 3.37523 13.7779 3.56581C14.0571 3.75635 14.1554 4.11331 14.0299 4.41347L13.9615 4.53847L7.71151 13.7045C7.59411 13.8767 7.4063 13.9877 7.19881 14.0072C6.99136 14.0267 6.78564 13.9533 6.63826 13.806L2.88826 10.056L2.79842 9.9457C2.6192 9.67407 2.64927 9.30496 2.88826 9.06581C3.12738 8.82669 3.49647 8.79676 3.76815 8.97597L3.8785 9.06581L7.03084 12.2182L12.8053 3.74941L12.8961 3.64101Z'/%3E%3C/svg%3E");
+
+  /* Legacy aliases; not part of the current agent contract. */
+  --viz-bg: transparent;
+  --viz-panel: var(--card);
+  --viz-border: var(--border);
+  --viz-text: var(--foreground);
+  --viz-muted: var(--muted-foreground);
+  --viz-accent: var(--primary);
+  --viz-accent-text: var(--primary-foreground);
+  --viz-accent-bg: var(--accent);
+  --viz-font-size: var(--font-size-base);
+  --viz-warning: var(--destructive);
+  --color-background-primary: var(--background);
+  --color-text-primary: var(--foreground);
+  --color-border-secondary: var(--border);
+}
+
+:root[data-visualize-standalone] {
+  background-color: var(--background) !important;
+}
+
+/* Generic mobile code-block hosts provide light/dark mode but no series palette.
+   AppBlock hosts set all six variables themselves. */
+:root:not([data-app-block-surface]) {
+  --viz-series-1: var(--primary);
+  --viz-series-2: light-dark(#f3883b, #f59a56);
+  --viz-series-3: light-dark(#5dc977, #74d58b);
+  --viz-series-4: light-dark(#eb77b1, #f08fc0);
+  --viz-series-5: light-dark(#9b79ec, #aa91ef);
+  --viz-series-6: light-dark(#3ab9b1, #5acbc2);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html > body {
+  margin: 0;
+  padding: 5px;
+  color: var(--foreground);
+  background: transparent !important;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-normal);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+}
+
+:root:not([data-app-block-surface]) > body {
+  padding: 12px;
+}
+
+a {
+  color: color-mix(in srgb, var(--viz-accent) 80%, var(--viz-text) 20%);
+  cursor: pointer;
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  text-underline-offset: 2px;
+}
+
+a:is(:hover, :focus-visible) {
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-thickness: 0.5px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin-block: 0;
+}
+
+h1 {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h3,
+h4,
+h5,
+h6 {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.3;
+}
+
+b,
+strong,
+th {
+  font-weight: var(--font-weight-medium);
+}
+
+code:not(pre code) {
+  display: inline;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  word-break: break-word;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--foreground);
+  font: inherit;
+  text-align: start;
+}
+
+.table :is(th, td) {
+  padding-block: 10px;
+  padding-inline: 0 24px;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--border);
+  text-align: start;
+  vertical-align: top;
+}
+
+.table-responsive > .table :is(th, td) {
+  overflow-wrap: break-word;
+}
+
+.table :is(th, td):last-child {
+  padding-inline-end: 0;
+}
+
+.table :is(caption, thead th) {
+  font-weight: 600;
+}
+
+.table thead th {
+  padding-block: 8px;
+  border-bottom-color: color-mix(in srgb, var(--foreground) 16%, transparent);
+}
+
+.table tbody tr:last-child :is(th, td) {
+  border-bottom: 0;
+}
+
+.table.table-sm :is(th, td) {
+  padding-block: 6px;
+}
+
+.table.table-sm :is(th, td):not(:last-child) {
+  padding-inline-end: 16px;
+}
+
+.table :is(.text-end, [align="right"]) {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.table :is(.text-center, [align="center"]) {
+  text-align: center;
+}
+
+.table .text-nowrap {
+  white-space: nowrap;
+}
+
+#widget {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  background: transparent !important;
+}
+
+.card {
+  min-width: 0;
+  padding: 12px;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  border-radius: var(--radius-2xl);
+  color: var(--card-foreground);
+  background: var(--card);
+}
+
+#widget > :not(.card) {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  left: 0;
+  width: max-content;
+  max-width: min(
+    20rem,
+    var(--tooltip-available-width, calc(100vw - 10px)),
+    calc(100vw - 10px)
+  );
+  max-height: min(
+    var(--tooltip-available-height, calc(100vh - 10px)),
+    calc(100vh - 10px)
+  );
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--popover-foreground);
+  background: var(--popover);
+  box-shadow: none;
+  font-size: var(--font-size-tooltip);
+  line-height: var(--line-height-tooltip);
+  overflow-wrap: break-word;
+  white-space: normal;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* The bundled tooltip runtime owns [data-tooltip]. AppBlock's CSS-only
+   pseudo-tooltip can widen dense grids even while hidden. */
+main [data-tooltip]::after {
+  content: none;
+}
+
+.viz-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(max(180px, 24%), 1fr));
+  gap: 10px;
+}
+
+.viz-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.viz-stat-value {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+.viz-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.viz-badge {
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  color: var(--accent-foreground);
+  background: var(--accent);
+  font-weight: var(--font-weight-medium);
+}
+
+small,
+.text-small,
+.viz-badge {
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-small);
+}
+
+.text-muted {
+  color: var(--muted-foreground);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.viz-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.viz-controls > .form-label {
+  display: grid;
+  min-width: min(100%, 260px);
+  flex: 1 1 280px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin-bottom: 0;
+}
+
+.viz-controls > .form-label > :is(.form-control, .form-range, .form-select) {
+  grid-column: 1 / -1;
+}
+
+.btn,
+.form-check-input,
+.form-control,
+.form-range,
+.form-select {
+  font: inherit;
+}
+
+.btn {
+  appearance: button;
+  display: inline-flex;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0 8px;
+  -webkit-app-region: no-drag;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: var(--cursor-interaction, pointer);
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.btn:is(.btn-block, .viz-tile) {
+  inline-size: 100%;
+}
+
+.btn.viz-tile {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+a.btn {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn-primary {
+  border-color: transparent;
+  color: var(--interactive-label-primary-default, var(--primary-foreground));
+  background: var(--interactive-bg-primary-default, var(--foreground));
+  background-clip: padding-box;
+}
+
+.btn-primary .text-muted {
+  color: color-mix(
+    in srgb,
+    var(--interactive-label-primary-default, var(--primary-foreground)) 50%,
+    transparent
+  );
+}
+
+.btn-primary:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 80%, transparent);
+  background-clip: padding-box;
+}
+
+.btn-ghost {
+  border-color: transparent;
+  color: var(--muted-foreground);
+  background: transparent;
+}
+
+.btn-ghost:not(:disabled):hover {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+[data-lucide] {
+  stroke-width: 1.6;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--foreground);
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  padding: 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  color: var(--foreground);
+  background: var(--secondary);
+}
+
+.form-control::placeholder {
+  color: var(--muted-foreground);
+}
+
+.form-control[type="file"] {
+  padding: 0;
+  overflow: hidden;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control[type="file"]::file-selector-button {
+  min-height: 26px;
+  margin-right: 8px;
+  padding: 0 8px;
+  border: 0;
+  border-right: 1px solid var(--input);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: inherit;
+  font: inherit;
+}
+
+.form-control[type="file"]:not(:disabled):hover::file-selector-button {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-control-color[type="color"] {
+  width: 40px;
+  height: 28px;
+  padding: 3px;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control-color[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.form-control-color[type="color"]::-webkit-color-swatch {
+  border: 0;
+  border-radius: calc(var(--radius-lg) - 4px);
+}
+
+textarea.form-control {
+  height: auto;
+  min-height: 72px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.form-control:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-control:disabled,
+.form-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.form-select {
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  margin: 0;
+  padding: 0 32px 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  color: var(--foreground);
+  background-color: var(--secondary);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted-foreground) 50%),
+    linear-gradient(135deg, var(--muted-foreground) 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) 50%,
+    calc(100% - 10px) 50%;
+  background-repeat: no-repeat;
+  background-size: 4px 4px;
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-select:not(:disabled):hover {
+  background-color: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-select:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-check {
+  display: flex;
+  min-height: 20px;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-check-input {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  margin: 0;
+  border: 1px solid var(--input);
+  color: var(--primary-foreground);
+  background-color: transparent;
+  cursor: var(--cursor-interaction, default);
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    box-shadow 150ms;
+}
+
+.form-check:not(.form-switch) .form-check-input[type="checkbox"] {
+  border-color: var(--input);
+  border-radius: var(--radius-sm);
+  background-color: var(--secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input:not(:disabled):not(:checked):hover {
+  background-color: var(--card);
+}
+
+.form-check:not(.form-switch) .form-check-input[type="checkbox"]:checked {
+  border-color: var(--primary);
+  background-color: var(--primary);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input[type="checkbox"]:checked::before {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--primary-foreground);
+  content: "";
+  mask: var(--checkmark-image) center / 12px 12px no-repeat;
+}
+
+.form-check-input[type="radio"] {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+}
+
+.form-check-input[type="radio"]:checked {
+  border: 2px solid var(--primary);
+  background:
+    radial-gradient(circle, var(--primary-foreground) 0 2.5px, transparent 3px),
+    var(--primary);
+}
+
+.form-check:not(.form-switch) .form-check-input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+}
+
+.form-switch .form-check-input:disabled,
+.form-switch .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.form-check-label {
+  color: var(--foreground);
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-switch .form-check-input {
+  position: relative;
+  width: 32px;
+  height: 20px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+  box-shadow: none;
+  transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 1px solid light-dark(var(--primary-foreground), var(--foreground));
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+  box-shadow: var(--shadow-sm);
+  content: "";
+  transform: translate(2px, -50%);
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input:checked {
+  background: var(--primary);
+}
+
+.form-switch .form-check-input:checked::before {
+  transform: translate(14px, -50%);
+}
+
+.form-switch .form-check-input:focus-visible {
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.form-range {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 28px;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  outline: none;
+  border: 0;
+  accent-color: var(--primary);
+  background: linear-gradient(
+      color-mix(in srgb, var(--foreground) 7%, transparent),
+      color-mix(in srgb, var(--foreground) 7%, transparent)
+    )
+    center / 100% 2px no-repeat;
+}
+
+.form-range::-webkit-slider-runnable-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-webkit-slider-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range::-moz-range-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-moz-range-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.btn:not(.btn-primary, .viz-tile):is(
+    [aria-pressed="true"],
+    [aria-selected="true"],
+    .is-selected
+  ) {
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+
+.btn.viz-tile:is([aria-pressed="true"], [aria-selected="true"], .is-selected) {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+#widget > svg {
+  width: 100%;
+}
+
+.text-warning,
+.text-destructive {
+  color: var(--destructive);
+}
+</style>
+</head>
+<body>
+<div id="graph-engineering-slot">
+  <style>
+    #graph-engineering-slot {
+      --ge-spec: var(--viz-series-1);
+      --ge-engine: var(--viz-series-2);
+      --ge-tool: var(--viz-series-5);
+      --ge-review: var(--viz-series-6);
+      color: var(--foreground);
+      width: 100%;
+    }
+
+    #graph-engineering-slot * {
+      box-sizing: border-box;
+    }
+
+    #graph-engineering-slot .ge-kicker {
+      color: var(--muted-foreground);
+      margin: 0 0 0.75rem;
+    }
+
+    #graph-engineering-slot .ge-tabs {
+      margin-bottom: 1rem;
+    }
+
+    #graph-engineering-slot [data-ge-panel][hidden] {
+      display: none;
+    }
+
+    #graph-engineering-slot .ge-stage {
+      background:
+        radial-gradient(circle at 52% 0%, color-mix(in srgb, var(--ge-engine) 13%, transparent), transparent 48%),
+        linear-gradient(160deg, color-mix(in srgb, var(--background) 94%, var(--ge-spec) 6%), var(--background));
+      min-height: 26rem;
+      overflow: hidden;
+      padding: 0.75rem 0;
+      position: relative;
+    }
+
+    #graph-engineering-slot .ge-stage::before {
+      background-image: radial-gradient(color-mix(in srgb, var(--muted-foreground) 24%, transparent) 1px, transparent 1px);
+      background-size: 22px 22px;
+      content: "";
+      inset: 0;
+      opacity: 0.34;
+      pointer-events: none;
+      position: absolute;
+    }
+
+    #graph-engineering-slot .ge-scroll {
+      overflow-x: auto;
+      position: relative;
+    }
+
+    #graph-engineering-slot .ge-graph {
+      display: block;
+      min-width: 1500px;
+      width: 100%;
+    }
+
+    #graph-engineering-slot .ge-graph text,
+    #graph-engineering-slot .ge-mini-graph text,
+    #graph-engineering-slot .ge-evolution svg text {
+      fill: var(--foreground);
+      font-family: Inter, "Segoe UI", system-ui, sans-serif;
+    }
+
+    #graph-engineering-slot .ge-graph .node-name {
+      font-size: calc(var(--font-size-base, 16px) * 0.78);
+      font-weight: 500;
+    }
+
+    #graph-engineering-slot .ge-graph .node-role,
+    #graph-engineering-slot .ge-graph .node-type,
+    #graph-engineering-slot .ge-graph .edge-label {
+      font-size: calc(var(--font-size-base, 16px) * 0.62);
+    }
+
+    #graph-engineering-slot .ge-graph .node-files {
+      fill: var(--muted-foreground);
+      font-family: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+      font-size: calc(var(--font-size-base, 16px) * 0.54);
+    }
+
+    #graph-engineering-slot .ge-graph .node-type {
+      fill: var(--muted-foreground);
+      letter-spacing: 0.08em;
+    }
+
+    #graph-engineering-slot .node-box {
+      fill: color-mix(in srgb, var(--node) 10%, var(--card));
+      stroke: color-mix(in srgb, var(--node) 72%, var(--border));
+      stroke-width: 1.5;
+      transition: filter 160ms ease, opacity 160ms ease, transform 160ms ease;
+    }
+
+    #graph-engineering-slot .node-accent {
+      fill: var(--node);
+      opacity: 0.82;
+    }
+
+    #graph-engineering-slot .ge-node {
+      cursor: pointer;
+      outline: none;
+    }
+
+    #graph-engineering-slot .ge-node:hover .node-box,
+    #graph-engineering-slot .ge-node.is-selected .node-box {
+      filter: drop-shadow(0 0 8px color-mix(in srgb, var(--node) 54%, transparent));
+      transform: translateY(-3px);
+    }
+
+    #graph-engineering-slot .ge-node:focus .node-box {
+      stroke: var(--ring);
+      stroke-width: 3;
+    }
+
+    #graph-engineering-slot .ge-node.is-dim {
+      opacity: 0.26;
+    }
+
+    #graph-engineering-slot .ge-edge {
+      fill: none;
+      marker-end: url(#ge-arrow);
+      stroke: var(--muted-foreground);
+      stroke-width: 2;
+      transition: opacity 160ms ease, stroke-width 160ms ease;
+    }
+
+    #graph-engineering-slot .ge-edge.is-feedback {
+      animation: ge-march 9s linear infinite;
+      stroke: var(--edge);
+      stroke-dasharray: 8 7;
+    }
+
+    #graph-engineering-slot .ge-edge.is-highlight {
+      opacity: 1;
+      stroke-width: 4;
+    }
+
+    #graph-engineering-slot .ge-edge.is-dim {
+      opacity: 0.1;
+    }
+
+    #graph-engineering-slot .edge-label {
+      paint-order: stroke;
+      stroke: var(--background);
+      stroke-width: 6px;
+      stroke-linejoin: round;
+    }
+
+    #graph-engineering-slot .flow-dot {
+      fill: var(--foreground);
+      opacity: 0.7;
+    }
+
+    #graph-engineering-slot .ge-parallel-zone {
+      fill: color-mix(in srgb, var(--ge-engine) 5%, transparent);
+      stroke: color-mix(in srgb, var(--ge-engine) 48%, var(--border));
+      stroke-dasharray: 7 7;
+      stroke-width: 1.5;
+    }
+
+    #graph-engineering-slot .ge-zone-label {
+      fill: var(--muted-foreground);
+      font-size: calc(var(--font-size-base, 16px) * 0.62);
+      letter-spacing: 0.08em;
+    }
+
+    #graph-engineering-slot .ge-legend {
+      align-items: center;
+      color: var(--muted-foreground);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.9rem;
+      margin-top: 0.75rem;
+    }
+
+    #graph-engineering-slot .ge-legend-line {
+      border-top: 2px solid var(--muted-foreground);
+      display: inline-block;
+      margin-right: 0.35rem;
+      width: 2.25rem;
+    }
+
+    #graph-engineering-slot .ge-legend-line.is-dashed {
+      border-top-style: dashed;
+    }
+
+    #graph-engineering-slot .ge-detail {
+      margin-top: 1rem;
+    }
+
+    #graph-engineering-slot .ge-detail p {
+      margin: 0.25rem 0;
+    }
+
+    #graph-engineering-slot .ge-inspector-head {
+      align-items: start;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem 0.8rem;
+      justify-content: space-between;
+    }
+
+    #graph-engineering-slot .ge-inspector-head .viz-badge {
+      flex: 0 0 auto;
+    }
+
+    #graph-engineering-slot .ge-inspector-tabs,
+    #graph-engineering-slot .ge-path-controls {
+      margin-top: 0.75rem;
+    }
+
+    #graph-engineering-slot .ge-inspector-content {
+      border-top: 1px solid var(--border);
+      margin-top: 0.65rem;
+      min-height: 7rem;
+      padding-top: 0.65rem;
+    }
+
+    #graph-engineering-slot .ge-inspector-content ul {
+      margin: 0.35rem 0 0;
+      padding-left: 1.25rem;
+    }
+
+    #graph-engineering-slot .ge-inspector-content li {
+      margin: 0.28rem 0;
+    }
+
+    #graph-engineering-slot .ge-inspector-content pre {
+      color: var(--foreground);
+      margin: 0.3rem 0 0;
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+
+    #graph-engineering-slot .ge-detail code,
+    #graph-engineering-slot .ge-files code {
+      margin-right: 0.4rem;
+      white-space: normal;
+    }
+
+    #graph-engineering-slot .ge-evolution {
+      display: grid;
+      gap: 1.1rem;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    #graph-engineering-slot .ge-evolution-stage {
+      border-top: 2px solid var(--stage);
+      min-width: 0;
+      padding-top: 0.8rem;
+    }
+
+    #graph-engineering-slot .ge-evolution-stage h3,
+    #graph-engineering-slot .ge-gate-copy h3 {
+      margin: 0.2rem 0 0.5rem;
+    }
+
+    #graph-engineering-slot .ge-evolution-stage p {
+      margin: 0.4rem 0;
+    }
+
+    #graph-engineering-slot .ge-evolution-stage svg {
+      display: block;
+      margin: 0.55rem 0;
+      width: 100%;
+    }
+
+    #graph-engineering-slot .ge-flat-node {
+      fill: color-mix(in srgb, var(--stage) 10%, var(--card));
+      stroke: color-mix(in srgb, var(--stage) 68%, var(--border));
+      stroke-width: 1.5;
+    }
+
+    #graph-engineering-slot .ge-step-layout {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: minmax(15rem, 0.8fr) minmax(22rem, 1.2fr);
+      margin-top: 0.8rem;
+    }
+
+    #graph-engineering-slot .ge-step-copy h3 {
+      margin: 0.2rem 0 0.5rem;
+    }
+
+    #graph-engineering-slot .ge-step-copy p {
+      margin: 0.35rem 0;
+    }
+
+    #graph-engineering-slot .ge-mini-graph {
+      display: block;
+      width: 100%;
+    }
+
+    #graph-engineering-slot .ge-mini-node rect,
+    #graph-engineering-slot .ge-mini-node polygon {
+      fill: color-mix(in srgb, var(--muted) 50%, transparent);
+      stroke: var(--border);
+      stroke-width: 1.5;
+      transition: fill 180ms ease, filter 180ms ease, opacity 180ms ease;
+    }
+
+    #graph-engineering-slot .ge-mini-node text {
+      fill: var(--muted-foreground);
+      font-size: calc(var(--font-size-base, 16px) * 0.62);
+      transition: fill 180ms ease;
+    }
+
+    #graph-engineering-slot .ge-mini-node.is-active rect,
+    #graph-engineering-slot .ge-mini-node.is-active polygon {
+      fill: color-mix(in srgb, var(--mini) 18%, var(--card));
+      filter: drop-shadow(0 0 6px color-mix(in srgb, var(--mini) 44%, transparent));
+      stroke: var(--mini);
+      stroke-width: 2.5;
+    }
+
+    #graph-engineering-slot .ge-mini-node.is-active text {
+      fill: var(--foreground);
+    }
+
+    #graph-engineering-slot .ge-mini-edge {
+      fill: none;
+      marker-end: url(#ge-mini-arrow);
+      stroke: var(--border);
+      stroke-width: 2;
+    }
+
+    #graph-engineering-slot .ge-mini-edge.is-active {
+      stroke: var(--foreground);
+      stroke-width: 3;
+    }
+
+    #graph-engineering-slot .ge-gates {
+      align-items: start;
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: 1fr auto 1fr;
+    }
+
+    #graph-engineering-slot .ge-gate-symbol {
+      align-items: center;
+      align-self: center;
+      background: color-mix(in srgb, var(--primary) 16%, var(--card));
+      border: 1px solid var(--primary);
+      display: flex;
+      height: 5.5rem;
+      justify-content: center;
+      transform: rotate(45deg);
+      width: 5.5rem;
+    }
+
+    #graph-engineering-slot .ge-gate-symbol span {
+      transform: rotate(-45deg);
+    }
+
+    #graph-engineering-slot .ge-gate-copy {
+      border-top: 2px solid var(--primary);
+      padding-top: 0.75rem;
+    }
+
+    #graph-engineering-slot .ge-caveat {
+      border-left: 3px solid var(--primary);
+      margin-top: 1.25rem;
+      padding-left: 0.9rem;
+    }
+
+    #graph-engineering-slot .ge-caveat p {
+      margin: 0.25rem 0;
+    }
+
+    #graph-engineering-slot .ge-audit td:first-child {
+      font-weight: 500;
+    }
+
+    #graph-engineering-slot .ge-audit code {
+      white-space: normal;
+    }
+
+    #graph-engineering-slot .ge-note {
+      color: var(--muted-foreground);
+      margin-top: 0.7rem;
+    }
+
+    @keyframes ge-march {
+      to {
+        stroke-dashoffset: -90;
+      }
+    }
+
+    @media (max-width: 680px) {
+      #graph-engineering-slot .ge-evolution,
+      #graph-engineering-slot .ge-step-layout,
+      #graph-engineering-slot .ge-gates {
+        grid-template-columns: 1fr;
+      }
+
+      #graph-engineering-slot .ge-gate-symbol {
+        justify-self: center;
+      }
+
+      #graph-engineering-slot .ge-stage {
+        min-height: 23rem;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #graph-engineering-slot .ge-edge.is-feedback {
+        animation: none;
+      }
+
+      #graph-engineering-slot animateMotion {
+        display: none;
+      }
+
+      #graph-engineering-slot .node-box,
+      #graph-engineering-slot .ge-mini-node rect,
+      #graph-engineering-slot .ge-mini-node polygon {
+        transition: none;
+      }
+    }
+  </style>
+
+  <p class="ge-kicker">Validated orchestration design · Monte Carlo → Engine → RTP evidence · agents, tools, artifacts, and human gates</p>
+
+  <nav class="viz-controls ge-tabs" aria-label="Graph engineering views">
+    <button type="button" class="btn" data-ge-tab="evolution" aria-selected="false">Evolution</button>
+    <button type="button" class="btn btn-primary" data-ge-tab="graph" aria-selected="true">Validated graph</button>
+    <button type="button" class="btn" data-ge-tab="walkthrough" aria-selected="false">Illustrative run</button>
+    <button type="button" class="btn" data-ge-tab="gates" aria-selected="false">Human gates</button>
+    <button type="button" class="btn" data-ge-tab="audit" aria-selected="false">Node audit</button>
+  </nav>
+
+  <section data-ge-panel="evolution" hidden>
+    <div class="ge-evolution">
+      <section class="ge-evolution-stage" style="--stage: var(--ge-spec)">
+        <span class="viz-badge">A</span>
+        <h3>Prompt Engineering</h3>
+        <svg viewBox="0 0 260 116" role="img" aria-label="One structured model call">
+          <rect class="ge-flat-node" x="56" y="20" width="148" height="62" rx="12"></rect>
+          <text x="130" y="48" text-anchor="middle" font-weight="500">One model call</text>
+          <text x="130" y="68" text-anchor="middle">context + constraints</text>
+          <path d="M130 82 L130 106" stroke="var(--muted-foreground)" stroke-width="2"></path>
+        </svg>
+        <p>Structure one request well enough that the model can return a useful result without repeated clarification.</p>
+        <p class="text-muted"><code>NormalSpin.cs</code> → branch list + test stubs</p>
+      </section>
+
+      <section class="ge-evolution-stage" style="--stage: var(--ge-engine)">
+        <span class="viz-badge">B</span>
+        <h3>Loop Engineering</h3>
+        <svg viewBox="0 0 260 116" role="img" aria-label="One agent iterating through a tool loop">
+          <rect class="ge-flat-node" x="70" y="20" width="120" height="62" rx="12"></rect>
+          <text x="130" y="48" text-anchor="middle" font-weight="500">One agent</text>
+          <text x="130" y="68" text-anchor="middle">plan · act · observe</text>
+          <path d="M190 42 C238 42 238 102 130 102 C62 102 42 76 70 56" fill="none" stroke="var(--muted-foreground)" stroke-width="2"></path>
+          <path d="M72 52 L62 56 L70 65" fill="none" stroke="var(--muted-foreground)" stroke-width="2"></path>
+        </svg>
+        <p>Design one agent’s retry, observation, correction, and stopping behavior around real tool results.</p>
+        <p class="text-muted"><code>BonusSpin.cs</code> → build → fix → harness</p>
+      </section>
+
+      <section class="ge-evolution-stage" style="--stage: var(--ge-review)">
+        <span class="viz-badge">C</span>
+        <h3>Graph Engineering</h3>
+        <svg viewBox="0 0 260 116" role="img" aria-label="Explicit nodes, branches, state, and approval gates">
+          <circle cx="36" cy="58" r="16" fill="color-mix(in srgb, var(--ge-spec) 18%, var(--card))" stroke="var(--ge-spec)"></circle>
+          <circle cx="102" cy="28" r="16" fill="color-mix(in srgb, var(--ge-review) 18%, var(--card))" stroke="var(--ge-review)"></circle>
+          <circle cx="102" cy="88" r="16" fill="color-mix(in srgb, var(--ge-engine) 18%, var(--card))" stroke="var(--ge-engine)"></circle>
+          <rect x="150" y="42" width="54" height="32" rx="8" fill="color-mix(in srgb, var(--ge-tool) 18%, var(--card))" stroke="var(--ge-tool)"></rect>
+          <polygon points="238,42 254,58 238,74 222,58" fill="color-mix(in srgb, var(--primary) 18%, var(--card))" stroke="var(--primary)"></polygon>
+          <path d="M52 54 L86 34 M52 62 L86 82 M118 30 L150 50 M118 86 L150 66 M204 58 L222 58" fill="none" stroke="var(--muted-foreground)" stroke-width="2"></path>
+        </svg>
+        <p>Define nodes, shared state, branches, routing rules, tool steps, retry loops, and human approval gates.</p>
+        <p class="text-muted">A graph may use one agent or several agents.</p>
+      </section>
+    </div>
+  </section>
+
+  <section data-ge-panel="graph">
+    <div class="ge-stage">
+      <div class="ge-scroll">
+        <svg class="ge-graph" viewBox="0 0 1900 860" role="img" aria-labelledby="ge-graph-title ge-graph-desc">
+          <title id="ge-graph-title">Validated graph engineering workflow with parallel spin-type conversion</title>
+          <desc id="ge-graph-desc">After a human approves the extracted game rules and logic, a planning node splits the work by spin type and activates the affected NormalSpin, FreeSpin, BonusSpin, and Respin converter nodes. Selected converters can run in parallel, then a cross-spin integration node checks shared state and centralized payout before RTP matching, review, and final human approval.</desc>
+          <defs>
+            <marker id="ge-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0 0 L10 5 L0 10 Z" fill="context-stroke"></path>
+            </marker>
+          </defs>
+
+          <rect class="ge-parallel-zone" x="742" y="150" width="212" height="620" rx="18"></rect>
+          <text class="ge-zone-label" x="758" y="168">PARALLEL SPIN BRANCHES</text>
+
+          <path id="ge-e1" class="ge-edge" data-from="spec" data-to="contract" d="M200 430 L230 430"></path>
+          <path id="ge-e2" class="ge-edge" data-from="contract" data-to="entry" d="M385 430 L420 430"></path>
+          <path id="ge-e3" class="ge-edge" data-from="entry" data-to="router" d="M520 430 L550 430"></path>
+          <path id="ge-e4" class="ge-edge" data-from="router" data-to="normalSpin" d="M725 405 C744 340 740 242 760 242"></path>
+          <path id="ge-e5" class="ge-edge" data-from="router" data-to="freeSpin" d="M725 420 C744 405 742 377 760 377"></path>
+          <path id="ge-e6" class="ge-edge" data-from="router" data-to="bonusSpin" d="M725 440 C744 455 742 512 760 512"></path>
+          <path id="ge-e7" class="ge-edge" data-from="router" data-to="respin" d="M725 455 C744 535 740 647 760 647"></path>
+          <path id="ge-e8" class="ge-edge" data-from="normalSpin" data-to="integration" d="M935 242 C960 242 952 392 980 405"></path>
+          <path id="ge-e9" class="ge-edge" data-from="freeSpin" data-to="integration" d="M935 377 C958 377 960 412 980 420"></path>
+          <path id="ge-e10" class="ge-edge" data-from="bonusSpin" data-to="integration" d="M935 512 C958 512 960 450 980 442"></path>
+          <path id="ge-e11" class="ge-edge" data-from="respin" data-to="integration" d="M935 647 C960 647 952 470 980 455"></path>
+          <path id="ge-e12" class="ge-edge" data-from="integration" data-to="tool" d="M1170 430 L1210 432"></path>
+          <path id="ge-e13" class="ge-edge" data-from="tool" data-to="review" d="M1390 432 L1430 430"></path>
+          <path id="ge-e14" class="ge-edge" data-from="review" data-to="exit" d="M1610 430 L1650 430"></path>
+          <path id="ge-e15" class="ge-edge" data-from="exit" data-to="gitlab" d="M1750 430 L1760 430"></path>
+
+          <path id="ge-f1" class="ge-edge is-feedback" style="--edge: var(--ge-engine)" data-from="review" data-to="router" d="M1430 475 C1300 820 900 842 650 490"></path>
+          <path id="ge-f3" class="ge-edge is-feedback" style="--edge: var(--ge-spec)" data-from="review" data-to="spec" d="M1440 490 C1120 865 390 870 110 490"></path>
+          <path id="ge-f4" class="ge-edge is-feedback" style="--edge: var(--ge-engine)" data-from="tool" data-to="integration" d="M1210 478 C1188 540 1135 548 1110 490"></path>
+
+          <text class="edge-label" x="965" y="824">logic defect → owning spin branch</text>
+          <text class="edge-label" x="490" y="842">spec ambiguity</text>
+          <text class="edge-label" x="1130" y="545">compile / integration failure</text>
+
+          <circle class="flow-dot" r="3">
+            <animateMotion dur="2.2s" repeatCount="indefinite"><mpath href="#ge-e1"></mpath></animateMotion>
+          </circle>
+          <circle class="flow-dot" r="3">
+            <animateMotion dur="3.2s" repeatCount="indefinite"><mpath href="#ge-e4"></mpath></animateMotion>
+          </circle>
+          <circle class="flow-dot" r="3">
+            <animateMotion dur="2.8s" repeatCount="indefinite"><mpath href="#ge-e5"></mpath></animateMotion>
+          </circle>
+          <circle class="flow-dot" r="3">
+            <animateMotion dur="3s" repeatCount="indefinite"><mpath href="#ge-e6"></mpath></animateMotion>
+          </circle>
+          <circle class="flow-dot" r="3">
+            <animateMotion dur="3.4s" repeatCount="indefinite"><mpath href="#ge-e7"></mpath></animateMotion>
+          </circle>
+
+          <a href="#ge-node-detail" class="ge-node" data-node="spec" aria-label="Analyze Math GameAlgo agent">
+            <g style="--node: var(--ge-spec)">
+              <rect class="node-box" x="20" y="370" width="180" height="120" rx="16"></rect>
+              <rect class="node-accent" x="20" y="370" width="6" height="120" rx="3"></rect>
+              <text class="node-type" x="38" y="392">AGENT</text>
+              <text class="node-name" x="38" y="416">Analyze Math</text>
+              <text class="node-name" x="38" y="433">GameAlgo</text>
+              <text class="node-role" x="38" y="454">Extracts rules + unknowns</text>
+              <text class="node-files" x="38" y="477">GameAlgo/ · GameDoc.pdf</text>
+            </g>
+          </a>
+
+          <a href="#ge-node-detail" class="ge-node" data-node="contract" aria-label="Game Rules and Logic artifact">
+            <g style="--node: var(--muted-foreground)">
+              <rect class="node-box" x="230" y="382" width="155" height="96" rx="12"></rect>
+              <text class="node-type" x="246" y="403">ARTIFACT / STATE</text>
+              <text class="node-name" x="246" y="437">Game Rules / Logic</text>
+              <text class="node-files" x="246" y="466">rules · sourceRefs · unknowns</text>
+            </g>
+          </a>
+
+          <a href="#ge-node-detail" class="ge-node" data-node="entry" aria-label="Entry human approval gate">
+            <g style="--node: var(--primary)">
+              <polygon class="node-box" points="470,380 520,430 470,480 420,430"></polygon>
+              <text class="node-type" x="470" y="419" text-anchor="middle">HUMAN</text>
+              <text class="node-name" x="470" y="439" text-anchor="middle">Entry gate</text>
+              <text class="node-role" x="470" y="455" text-anchor="middle">game rules</text>
+            </g>
+          </a>
+
+          <a href="#ge-node-detail" class="ge-node" data-node="router" aria-label="Split work by spin type planning agent">
+            <g style="--node: var(--ge-engine)">
+              <rect class="node-box" x="550" y="370" width="175" height="120" rx="16"></rect>
+              <rect class="node-accent" x="550" y="370" width="6" height="120" rx="3"></rect>
+              <text class="node-type" x="568" y="393">PLANNER</text>
+              <text class="node-name" x="568" y="416">Split Work by</text>
+              <text class="node-name" x="568" y="433">Spin Type</text>
+              <text class="node-role" x="568" y="451">Selects affected spin types</text>
+              <text class="node-files" x="568" y="465">shared constants · contracts</text>
+              <text class="node-files" x="568" y="480">parallel-safe task packets</text>
+            </g>
+          </a>
+
+          <a href="#ge-node-detail" class="ge-node" data-node="normalSpin" aria-label="NormalSpin converter agent">
+            <g style="--node: var(--ge-engine)">
+              <rect class="node-box" x="760" y="185" width="175" height="115" rx="15"></rect>
+              <rect class="node-accent" x="760" y="185" width="6" height="115" rx="3"></rect>
+              <text class="node-type" x="778" y="208">AGENT</text>
+              <text class="node-name" x="778" y="232">NormalSpin Converter</text>
+              <text class="node-role" x="778" y="255">reels · GameSet · FeatureBuy</text>
+              <text class="node-files" x="778" y="280">XxxEngine.NormalSpin.cs</text>
+            </g>
+          </a>
+
+          <a href="#ge-node-detail" class="ge-node" data-node="freeSpin" aria-label="FreeSpin converter agent">
+            <g style="--node: var(--ge-engine)">
+              <rect class="node-box" x="760" y="320" width="175" height="115" rx="15"></rect>
+              <rect class="node-accent" x="760" y="320" width="6" height="115" rx="3"></rect>
+              <text class="node-type" x="778" y="343">AGENT</text>
+              <text class="node-name" x="778" y="367">FreeSpin Converter</text>
+              <text class="node-role" x="778" y="390">trigger · retrigger · max-win</text>
+              <text class="node-files" x="778" y="415">XxxEngine.FreeSpin.cs</text>
+            </g>
+          </a>
+
+          <a href="#ge-node-detail" class="ge-node" data-node="bonusSpin" aria-label="BonusSpin converter agent">
+            <g style="--node: var(--ge-engine)">
+              <rect class="node-box" x="760" y="455" width="175" height="115" rx="15"></rect>
+              <rect class="node-accent" x="760" y="455" width="6" height="115" rx="3"></rect>
+              <text class="node-type" x="778" y="478">AGENT</text>
+              <text class="node-name" x="778" y="502">BonusSpin Converter</text>
+              <text class="node-role" x="778" y="525">bonus mechanic + state</text>
+              <text class="node-files" x="778" y="550">XxxEngine.BonusSpin.cs</text>
+            </g>
+          </a>
+
+          <a href="#ge-node-detail" class="ge-node" data-node="respin" aria-label="Respin converter agent">
+            <g style="--node: var(--ge-engine)">
+              <rect class="node-box" x="760" y="590" width="175" height="115" rx="15"></rect>
+              <rect class="node-accent" x="760" y="590" width="6" height="115" rx="3"></rect>
+              <text class="node-type" x="778" y="613">AGENT</text>
+              <text class="node-name" x="778" y="637">Respin Converter</text>
+              <text class="node-role" x="778" y="660">accumulation + resets</text>
+              <text class="node-files" x="778" y="685">XxxEngine.Respin.cs</text>
+            </g>
+          </a>
+
+          <a href="#ge-node-detail" class="ge-node" data-node="integration" aria-label="Cross-spin integration reviewer">
+            <g style="--node: var(--ge-review)">
+              <rect class="node-box" x="980" y="370" width="190" height="120" rx="16"></rect>
+              <rect class="node-accent" x="980" y="370" width="6" height="120" rx="3"></rect>
+              <text class="node-type" x="998" y="393">INTEGRATION / CRITIC</text>
+              <text class="node-name" x="998" y="418">Cross-spin Review</text>
+              <text class="node-role" x="998" y="441">Combines independent diffs</text>
+              <text class="node-files" x="998" y="465">XxxEngine.cs · shared state</text>
+              <text class="node-files" x="998" y="480">centralized CalculatePayout</text>
+            </g>
+          </a>
+
+          <a href="#ge-node-detail" class="ge-node" data-node="tool" aria-label="Match RTP validation node">
+            <g style="--node: var(--ge-tool)">
+              <rect class="node-box" x="1210" y="370" width="180" height="125" rx="16"></rect>
+              <rect class="node-accent" x="1210" y="370" width="6" height="125" rx="3"></rect>
+              <text class="node-type" x="1228" y="393">VALIDATION TOOLS</text>
+              <text class="node-name" x="1228" y="418">Match RTP</text>
+              <text class="node-role" x="1228" y="441">Runs build + harness</text>
+              <text class="node-files" x="1228" y="465">API RTP ↔ Monte Carlo</text>
+              <text class="node-files" x="1228" y="480">tolerance + evidence</text>
+            </g>
+          </a>
+
+          <a href="#ge-node-detail" class="ge-node" data-node="review" aria-label="Reviewer and routing agent">
+            <g style="--node: var(--ge-review)">
+              <rect class="node-box" x="1430" y="365" width="180" height="130" rx="16"></rect>
+              <rect class="node-accent" x="1430" y="365" width="6" height="130" rx="3"></rect>
+              <text class="node-type" x="1448" y="388">CRITIC / ROUTER</text>
+              <text class="node-name" x="1448" y="413">Reviewer</text>
+              <text class="node-role" x="1448" y="436">Classifies findings + routes</text>
+              <text class="node-files" x="1448" y="460">spin owner · serialization</text>
+              <text class="node-files" x="1448" y="475">ambiguity · certification</text>
+            </g>
+          </a>
+
+          <a href="#ge-node-detail" class="ge-node" data-node="exit" aria-label="Final human approval gate">
+            <g style="--node: var(--primary)">
+              <polygon class="node-box" points="1700,380 1750,430 1700,480 1650,430"></polygon>
+              <text class="node-type" x="1700" y="419" text-anchor="middle">HUMAN</text>
+              <text class="node-name" x="1700" y="439" text-anchor="middle">Exit gate</text>
+              <text class="node-role" x="1700" y="455" text-anchor="middle">final diff</text>
+            </g>
+          </a>
+
+          <a href="#ge-node-detail" class="ge-node" data-node="gitlab" aria-label="Merge approved change to self-hosted GitLab">
+            <g style="--node: var(--muted-foreground)">
+              <rect class="node-box" x="1760" y="390" width="120" height="80" rx="14"></rect>
+              <text class="node-type" x="1820" y="416" text-anchor="middle">ACTION</text>
+              <text class="node-name" x="1820" y="439" text-anchor="middle">Merge GitLab</text>
+              <text class="node-files" x="1820" y="458" text-anchor="middle">gitlab.sige.la</text>
+            </g>
+          </a>
+        </svg>
+      </div>
+    </div>
+
+    <div class="ge-legend text-small" aria-label="Graph legend">
+      <span><span class="ge-legend-line"></span>forward flow</span>
+      <span><span class="ge-legend-line is-dashed"></span>targeted feedback</span>
+      <span class="text-muted">Select a node to inspect its boundary.</span>
+    </div>
+
+    <div id="ge-node-detail" class="card ge-detail" aria-live="polite">
+      <div class="ge-inspector-head">
+        <div>
+          <p><strong id="ge-detail-title">Select a node</strong></p>
+          <p id="ge-detail-summary">Open its inputs, working prompt or checklist, output contract, and routing rules.</p>
+        </div>
+        <span class="viz-badge" id="ge-detail-type">NODE INSPECTOR</span>
+      </div>
+
+      <div class="viz-controls ge-inspector-tabs" aria-label="Selected node details">
+        <button type="button" class="btn btn-primary" data-ge-inspector-tab="overview" aria-selected="true">Overview</button>
+        <button type="button" class="btn" data-ge-inspector-tab="inputs" aria-selected="false">Inputs</button>
+        <button type="button" class="btn" data-ge-inspector-tab="prompt" aria-selected="false">Prompt</button>
+        <button type="button" class="btn" data-ge-inspector-tab="output" aria-selected="false">Output</button>
+        <button type="button" class="btn" data-ge-inspector-tab="routing" aria-selected="false">Routing</button>
+      </div>
+
+      <div class="ge-inspector-content" id="ge-inspector-content">
+        <p>A graph node needs a defined purpose, input contract, output contract, and route. Some nodes reason with an LLM prompt; tools, artifacts, actions, and human gates do not.</p>
+      </div>
+
+      <div class="viz-controls ge-path-controls" aria-label="Trace selected node connections">
+        <button type="button" class="btn btn-primary" data-ge-trace="immediate" aria-pressed="true" disabled>Immediate</button>
+        <button type="button" class="btn" data-ge-trace="upstream" aria-pressed="false" disabled>Trace upstream</button>
+        <button type="button" class="btn" data-ge-trace="downstream" aria-pressed="false" disabled>Trace downstream</button>
+      </div>
+
+      <p class="ge-files" id="ge-detail-files"><code>input</code><code>instruction</code><code>output</code><code>routing</code></p>
+    </div>
+  </section>
+
+  <section data-ge-panel="walkthrough" hidden>
+    <div class="viz-controls" aria-label="Illustrative workflow step controls">
+      <button type="button" class="btn" id="ge-prev-step">Previous</button>
+      <button type="button" class="btn btn-primary" data-ge-step="0" aria-pressed="true">0</button>
+      <button type="button" class="btn" data-ge-step="1" aria-pressed="false">1</button>
+      <button type="button" class="btn" data-ge-step="2" aria-pressed="false">2</button>
+      <button type="button" class="btn" data-ge-step="3" aria-pressed="false">3</button>
+      <button type="button" class="btn" data-ge-step="4" aria-pressed="false">4</button>
+      <button type="button" class="btn" data-ge-step="5" aria-pressed="false">5</button>
+      <button type="button" class="btn" data-ge-step="6" aria-pressed="false">6</button>
+      <button type="button" class="btn" data-ge-step="7" aria-pressed="false">7</button>
+      <button type="button" class="btn" id="ge-next-step">Next</button>
+    </div>
+
+    <div class="ge-step-layout">
+      <div class="card ge-step-copy" aria-live="polite">
+        <p class="text-muted" id="ge-step-label">Illustrative validation scenario · Step 0 of 7</p>
+        <h3 id="ge-step-title">Kickoff</h3>
+        <p id="ge-step-body">The math team delivers <code>StickyMultiplierWild_Solution</code> and the authoritative GameDoc. No failure is assumed yet.</p>
+        <p class="ge-files" id="ge-step-files"><code>GameDoc.pdf</code><code>GameAlgo/</code></p>
+      </div>
+
+      <svg class="ge-mini-graph" viewBox="0 0 900 300" role="img" aria-label="Active nodes in an illustrative run where work is split into the FreeSpin branch">
+        <defs>
+          <marker id="ge-mini-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0 0 L10 5 L0 10 Z" fill="context-stroke"></path>
+          </marker>
+        </defs>
+        <path class="ge-mini-edge" data-mini-edge="spec-entry" d="M120 145 L145 145"></path>
+        <path class="ge-mini-edge" data-mini-edge="entry-router" d="M215 145 L230 145"></path>
+        <path class="ge-mini-edge" data-mini-edge="router-free" d="M340 145 L370 145"></path>
+        <path class="ge-mini-edge" data-mini-edge="free-tool" d="M490 145 L530 170"></path>
+        <path class="ge-mini-edge" data-mini-edge="tool-review" d="M650 170 L700 145"></path>
+        <path class="ge-mini-edge" data-mini-edge="review-free" d="M730 180 C650 270 500 270 430 205"></path>
+        <path class="ge-mini-edge" data-mini-edge="review-exit" d="M760 180 L760 215"></path>
+
+        <g class="ge-mini-node" data-mini-node="spec" style="--mini: var(--ge-spec)">
+          <rect x="20" y="110" width="100" height="70" rx="12"></rect>
+          <text x="70" y="141" text-anchor="middle">Analyze Math</text>
+          <text x="70" y="161" text-anchor="middle">GameAlgo</text>
+        </g>
+        <g class="ge-mini-node" data-mini-node="entry" style="--mini: var(--primary)">
+          <polygon points="180,110 215,145 180,180 145,145"></polygon>
+          <text x="180" y="149" text-anchor="middle">Entry gate</text>
+        </g>
+        <g class="ge-mini-node" data-mini-node="router" style="--mini: var(--ge-engine)">
+          <rect x="230" y="110" width="110" height="70" rx="12"></rect>
+          <text x="285" y="141" text-anchor="middle">Split by spin type</text>
+          <text x="285" y="161" text-anchor="middle">selects branch</text>
+        </g>
+        <g class="ge-mini-node" data-mini-node="freeSpin" style="--mini: var(--ge-engine)">
+          <rect x="370" y="110" width="120" height="70" rx="12"></rect>
+          <text x="430" y="141" text-anchor="middle">FreeSpin</text>
+          <text x="430" y="161" text-anchor="middle">Converter</text>
+        </g>
+        <g class="ge-mini-node" data-mini-node="tool" style="--mini: var(--ge-tool)">
+          <rect x="530" y="135" width="120" height="70" rx="12"></rect>
+          <text x="590" y="166" text-anchor="middle">Match RTP</text>
+          <text x="590" y="186" text-anchor="middle">harness + compare</text>
+        </g>
+        <g class="ge-mini-node" data-mini-node="review" style="--mini: var(--ge-review)">
+          <rect x="700" y="110" width="120" height="70" rx="12"></rect>
+          <text x="760" y="141" text-anchor="middle">Reviewer</text>
+          <text x="760" y="161" text-anchor="middle">route finding</text>
+        </g>
+        <g class="ge-mini-node" data-mini-node="exit" style="--mini: var(--primary)">
+          <polygon points="760,215 800,255 760,290 720,255"></polygon>
+          <text x="760" y="259" text-anchor="middle">Final gate</text>
+        </g>
+      </svg>
+    </div>
+    <p class="ge-note text-small">The omitted <code>Step</code> reset is an intentionally seeded example path for teaching. It is not presented as a real production defect.</p>
+  </section>
+
+  <section data-ge-panel="gates" hidden>
+    <div class="ge-gates">
+      <section class="ge-gate-copy">
+        <span class="viz-badge">Checkpoint 1</span>
+        <h3>Approve the extracted game rules</h3>
+        <p>Engineer checks extracted symbols, reels, feature rules, RTP targets, source references, and unresolved ambiguity before conversion starts.</p>
+        <p class="text-muted">Authority remains with the GameDoc and Monte Carlo source.</p>
+      </section>
+
+      <div class="ge-gate-symbol" aria-hidden="true"><span>✓</span></div>
+
+      <section class="ge-gate-copy">
+        <span class="viz-badge">Checkpoint 2</span>
+        <h3>Approve the final evidence package</h3>
+        <p>Engineer reviews the Engine diff, build output, PowerShell harness result, RTP comparison, and certification-sensitive edge cases.</p>
+        <p class="text-muted">Certification responsibility and merge approval stay human-owned.</p>
+      </section>
+    </div>
+
+    <div class="ge-caveat" role="note">
+      <p><strong>Recommended first graph:</strong> Split Work by Spin Type → one affected spin converter → Cross-spin Review → Match RTP → Human approval.</p>
+      <p class="text-muted">Activate parallel spin branches only when their input contracts are independent; always join them through cross-spin integration before testing.</p>
+    </div>
+  </section>
+
+  <section data-ge-panel="audit" hidden>
+    <div class="table-responsive">
+      <table class="table table-sm ge-audit">
+        <thead>
+          <tr>
+            <th>Proposed node</th>
+            <th>Decision</th>
+            <th>Validated purpose and boundary</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Analyze Math GameAlgo</td>
+            <td><span class="viz-badge">Keep</span></td>
+            <td>Produces traceable rules, source references, and open questions. It cannot resolve ambiguous math by itself.</td>
+          </tr>
+          <tr>
+            <td>Game Rules / Logic</td>
+            <td><span class="viz-badge">Artifact</span></td>
+            <td>Shared state between nodes. It is a reviewed interpretation; <code>GameDoc</code> and Monte Carlo remain authoritative.</td>
+          </tr>
+          <tr>
+            <td>Entry approval</td>
+            <td><span class="viz-badge">Keep</span></td>
+            <td>Required human gate before the extracted game rules drive implementation.</td>
+          </tr>
+          <tr>
+            <td>Split Work by Spin Type</td>
+            <td><span class="viz-badge">Add</span></td>
+            <td>Reads the approved game rules, freezes shared assumptions, and activates only the affected spin-type branches.</td>
+          </tr>
+          <tr>
+            <td>NormalSpin Converter</td>
+            <td><span class="viz-badge">Parallel branch</span></td>
+            <td>Owns normal-spin reel selection, weighted <code>GameSet</code> logic, feature buy, evaluation, and its focused partial.</td>
+          </tr>
+          <tr>
+            <td>FreeSpin Converter</td>
+            <td><span class="viz-badge">Parallel branch</span></td>
+            <td>Owns trigger, retrigger, free-spin step state, and max-win stopping behavior in <code>XxxEngine.FreeSpin.cs</code>.</td>
+          </tr>
+          <tr>
+            <td>BonusSpin Converter</td>
+            <td><span class="viz-badge">Parallel branch</span></td>
+            <td>Owns bonus-state transitions and the approved bonus mechanic in <code>XxxEngine.BonusSpin.cs</code>.</td>
+          </tr>
+          <tr>
+            <td>Respin Converter</td>
+            <td><span class="viz-badge">Parallel branch</span></td>
+            <td>Owns <code>IsRespin</code>, <code>SingleSpinAccumulatedWin</code>, per-step resets, and respin continuation.</td>
+          </tr>
+          <tr>
+            <td>Cross-spin Review</td>
+            <td><span class="viz-badge">Required join</span></td>
+            <td>Combines branch diffs and checks shared constants, spin transitions, state ownership, and centralized <code>CalculatePayout</code>.</td>
+          </tr>
+          <tr>
+            <td>Match RTP</td>
+            <td><span class="viz-badge">Reclassify</span></td>
+            <td>Runs the deterministic build and PowerShell harness, then compares production RTP with the approved Monte Carlo target and tolerance.</td>
+          </tr>
+          <tr>
+            <td>Reviewer / Compliance</td>
+            <td><span class="viz-badge">Keep with limit</span></td>
+            <td>Critic and router. It can flag logic, serialization, RNG, and spec risks; certification sign-off remains human.</td>
+          </tr>
+          <tr>
+            <td>Final approval + GitLab merge</td>
+            <td><span class="viz-badge">Keep</span></td>
+            <td>Human reviews the goal, source fidelity, evidence, and final diff before merge to <code>gitlab.sige.la</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <script>
+    (function () {
+      "use strict";
+
+      var root = document.getElementById("graph-engineering-slot");
+      if (!root) return;
+
+      var tabs = Array.prototype.slice.call(root.querySelectorAll("[data-ge-tab]"));
+      var panels = Array.prototype.slice.call(root.querySelectorAll("[data-ge-panel]"));
+
+      function showPanel(name) {
+        tabs.forEach(function (button) {
+          var active = button.getAttribute("data-ge-tab") === name;
+          button.setAttribute("aria-selected", active ? "true" : "false");
+          button.classList.toggle("btn-primary", active);
+        });
+        panels.forEach(function (panel) {
+          panel.hidden = panel.getAttribute("data-ge-panel") !== name;
+        });
+      }
+
+      tabs.forEach(function (button) {
+        button.addEventListener("click", function () {
+          showPanel(button.getAttribute("data-ge-tab"));
+        });
+      });
+
+      var details = {
+        spec: {
+          title: "Analyze Math GameAlgo",
+          type: "AGENT",
+          summary: "Reads the delivered math implementation and extracts the rules that drive production behavior.",
+          overview: "This node analyses GameAlgo together with the GameDoc and legacy Math.Test reference where applicable. It records the expected reels, weights, spin branches, payout behavior, RTP targets, source locations, and unresolved questions before implementation begins.",
+          inputs: [
+            "Authoritative GameDoc PDF",
+            "Newer-game source: C# GameAlgo, ROE, SimLibrary, and simulation code",
+            "Legacy-game source: Xxx.Math.Test.cpp and its original C++ reference",
+            "Repository instructions and requested feature scope"
+          ],
+          prompt: [
+            "Role: Read-only slot-game math analyst.",
+            "Goal: Extract the approved mechanic into a reviewed set of game rules and logic.",
+            "Read the GameDoc and delivered Monte Carlo source. Capture symbols, reels, spin branches, trigger and retrigger rules, payout, max-win behavior, RNG assumptions, and source references.",
+            "Record unsupported or conflicting information under unknowns. Do not infer missing math. Do not edit GameAlgo or Math.Test.",
+            "Return: normalized rules, exact source references, assumptions, and questions for the entry gate."
+          ],
+          output: [
+            "Game Rules / Logic artifact",
+            "Rule-to-source reference map",
+            "Explicit assumptions and unresolved questions"
+          ],
+          routing: [
+            "Complete rules and logic → Entry gate",
+            "Missing or conflicting rule → keep as unknown for a human decision",
+            "Never route an assumption directly into implementation"
+          ],
+          files: ["GameDoc.pdf", "GameAlgo/", "Math.Test.cpp"]
+        },
+        contract: {
+          title: "Game Rules / Logic",
+          type: "ARTIFACT / STATE",
+          summary: "Carries the reviewed game behavior and source references between nodes.",
+          overview: "This is shared graph state, not a worker. It reduces repeated reading while keeping each game rule traceable to the GameDoc or Monte Carlo implementation.",
+          inputs: [
+            "Normalized rules from Analyze Math GameAlgo",
+            "Source locations from the GameDoc or Monte Carlo",
+            "Assumptions and open questions"
+          ],
+          prompt: [
+            "No LLM prompt: this node stores state.",
+            "Its schema should require rules, sourceRefs, assumptions, unknowns, and approval status."
+          ],
+          output: [
+            "One reviewed rule set consumed by conversion, integration, and RTP matching",
+            "Stable identifiers for rules and source references",
+            "Entry-gate approval state"
+          ],
+          routing: [
+            "Unapproved rules → stop",
+            "Approved rules → Split Work by Spin Type",
+            "Changed rules → invalidate affected downstream evidence"
+          ],
+          files: ["rules", "sourceRefs", "unknowns"]
+        },
+        entry: {
+          title: "Entry gate",
+          type: "HUMAN GATE",
+          summary: "An engineer approves the interpreted game rules before code changes begin.",
+          overview: "The graph pauses here because a precise implementation built from a wrong interpretation is still wrong. The reviewer checks the exact goal and the source-backed rules.",
+          inputs: [
+            "Game Rules / Logic",
+            "GameDoc and relevant Monte Carlo source locations",
+            "List of assumptions and unknowns"
+          ],
+          prompt: [
+            "No LLM prompt: use a human review checklist.",
+            "Confirm the task goal, symbols, reels, spin branches, trigger and retrigger behavior, payout, max-win behavior, and every unresolved question.",
+            "Approve only when each implementation-driving rule has a source or an explicit human decision."
+          ],
+          output: [
+            "Approved game rules with reviewer identity",
+            "Rejected interpretation with precise questions",
+            "Narrow implementation scope"
+          ],
+          routing: [
+            "Approve → Split Work by Spin Type",
+            "Reject or clarify → Analyze Math GameAlgo",
+            "No silent default path"
+          ],
+          files: ["GameDoc", "Monte Carlo", "approval"]
+        },
+        router: {
+          title: "Split Work by Spin Type",
+          type: "PLANNER",
+          summary: "Turns the approved game rules into independent, parallel-safe spin-type tasks.",
+          overview: "This node identifies which spin types are actually affected, freezes shared constants and state assumptions, and prepares one bounded task packet per selected branch. It prevents four agents from independently changing the same shared file without an ownership rule.",
+          inputs: [
+            "Approved Game Rules / Logic",
+            "Affected mechanic and rule IDs",
+            "XxxEngine.cs shared constants, state, and payout boundary",
+            "Existing NormalSpin, FreeSpin, BonusSpin, and Respin partials"
+          ],
+          prompt: [
+            "Role: Slot-game spin-type implementation planner.",
+            "Determine which spin types are affected by each approved rule. Create one task packet per affected spin type.",
+            "Freeze the shared contract first: constants, state ownership, result fields, CalculatePayout placement, and cross-spin transitions.",
+            "Do not activate an unrelated branch. If two branches need the same shared edit, assign that edit to Cross-spin Review instead of allowing competing changes.",
+            "Return selected branches, branch inputs, owned files, shared constraints, dependencies, and acceptance criteria."
+          ],
+          output: [
+            "NormalSpin, FreeSpin, BonusSpin, and/or Respin task packets",
+            "Shared engine contract and file-ownership map",
+            "Parallel execution plan with explicit dependencies"
+          ],
+          routing: [
+            "Independent affected branches → run in parallel",
+            "Unaffected spin type → skip its converter",
+            "Shared-file conflict → reserve the change for Cross-spin Review",
+            "Spec ambiguity → return to Analyze Math GameAlgo through the Reviewer"
+          ],
+          files: ["XxxEngine.cs", "task packets", "ownership map"]
+        },
+        normalSpin: {
+          title: "NormalSpin Converter",
+          type: "PARALLEL AGENT",
+          summary: "Ports approved normal-spin behavior into XxxEngine.NormalSpin.cs.",
+          overview: "This branch owns normal-spin initialization, reel-set selection, evaluation, and state changes. It works independently after the planning node fixes the shared contracts, then returns a focused diff for integration.",
+          inputs: [
+            "Approved normal-spin rules and source references",
+            "GenerateReelResults and weighted selection logic from GameAlgo",
+            "XxxEngine.NormalSpin.cs and relevant shared constants",
+            "Feature-buy and GameSet contracts from Split Work by Spin Type"
+          ],
+          prompt: [
+            "Role: Senior NormalSpin conversion engineer.",
+            "Implement only the normal-spin task packet in XxxEngine.NormalSpin.cs.",
+            "Preserve InitializeNormalSpin → GenerateNormalSpin → evaluate flow, cumulative GameSet weights, feature-buy reel selection, and the centralized CalculatePayout boundary.",
+            "Do not edit FreeSpin, BonusSpin, Respin, delivered GameAlgo, or Math.Test. Flag shared-file changes for Cross-spin Review.",
+            "Return a focused diff, rule-to-code map, proposed deterministic cases, and unresolved risks."
+          ],
+          output: [
+            "Focused XxxEngine.NormalSpin.cs diff",
+            "Normal-spin rule-to-code mapping",
+            "Suggested reel-set and feature-buy test cases"
+          ],
+          routing: [
+            "Branch complete → Cross-spin Review",
+            "Needs a shared constant or result/state field → declare dependency; do not edit concurrently",
+            "Ambiguous rule → Reviewer routes back to the specification path"
+          ],
+          files: ["XxxEngine.NormalSpin.cs", "CumulativeReelWeightsMainGame", "FeatureBuy"]
+        },
+        freeSpin: {
+          title: "FreeSpin Converter",
+          type: "PARALLEL AGENT",
+          summary: "Ports free-spin trigger, retrigger, step, and max-win behavior.",
+          overview: "This branch owns the free-spin partial and its state transitions. It must preserve subtle rules such as no mini-retrigger, Step reset behavior, and stopping remaining free-spin steps when maximum win is reached.",
+          inputs: [
+            "Approved free-spin and retrigger rules",
+            "GameAlgo trigger and retrigger implementation",
+            "XxxEngine.FreeSpin.cs",
+            "SCATTER_REQUIRED, RETRIGGER_AMOUNT, max-win, and shared-state contracts"
+          ],
+          prompt: [
+            "Role: Senior FreeSpin conversion engineer.",
+            "Implement only the approved FreeSpin task packet in XxxEngine.FreeSpin.cs.",
+            "Verify CheckAndRetriggerFreeSpin, scatter thresholds, no mini-retrigger behavior, Step reset to freeSpinCount where specified, max-win payout, and stopping remaining free-spin steps.",
+            "Keep CalculatePayout centralized. Do not modify NormalSpin, BonusSpin, Respin, GameAlgo, or Math.Test.",
+            "Return a focused diff, rule-to-code map, forced CustomReels cases, and unresolved risks."
+          ],
+          output: [
+            "Focused XxxEngine.FreeSpin.cs diff",
+            "Trigger, retrigger, and max-win rule mapping",
+            "Deterministic retrigger and maximum-win test cases"
+          ],
+          routing: [
+            "Branch complete → Cross-spin Review",
+            "Needs shared state or result field → declare integration dependency",
+            "Missing retrigger rule → stop and request specification clarification"
+          ],
+          files: ["XxxEngine.FreeSpin.cs", "CheckAndRetriggerFreeSpin", "SCATTER_REQUIRED"]
+        },
+        bonusSpin: {
+          title: "BonusSpin Converter",
+          type: "PARALLEL AGENT",
+          summary: "Ports the approved bonus mechanic and bonus-state transitions.",
+          overview: "This branch translates the bonus-specific GameAlgo path into the BonusSpin partial. It is independent only after its input state and output ownership are agreed with the other spin branches.",
+          inputs: [
+            "Approved bonus mechanic and source references",
+            "Relevant GameAlgo bonus implementation",
+            "XxxEngine.BonusSpin.cs",
+            "Shared state, multiplier, feature-buy, and payout contracts"
+          ],
+          prompt: [
+            "Role: Senior BonusSpin conversion engineer.",
+            "Implement only the approved bonus mechanic in XxxEngine.BonusSpin.cs.",
+            "Preserve the delivered GameAlgo branch conditions, state transitions, reel or GameSet selection, multiplier application, and payout boundary.",
+            "Do not invent a bonus path that is absent from the GameDoc. Do not edit the other spin partials or reference math.",
+            "Return a focused diff, source mapping, deterministic bonus cases, and shared dependencies."
+          ],
+          output: [
+            "Focused XxxEngine.BonusSpin.cs diff",
+            "Bonus rule-to-code mapping",
+            "Deterministic bonus-entry and payout cases"
+          ],
+          routing: [
+            "Branch complete → Cross-spin Review",
+            "Cross-spin state conflict → Cross-spin Review resolves ownership",
+            "Missing bonus rule → specification clarification"
+          ],
+          files: ["XxxEngine.BonusSpin.cs", "GameAlgo", "bonus state"]
+        },
+        respin: {
+          title: "Respin Converter",
+          type: "PARALLEL AGENT",
+          summary: "Ports respin continuation, accumulation, and per-step reset logic.",
+          overview: "This branch owns respin-specific state transitions. Its review focuses on the distinction between CurrentTotalWin, SingleSpinAccumulatedWin, and TotalWin across respin steps.",
+          inputs: [
+            "Approved respin rules and source references",
+            "Relevant GameAlgo respin logic",
+            "XxxEngine.Respin.cs",
+            "Shared win accounting and spin-state contracts"
+          ],
+          prompt: [
+            "Role: Senior Respin conversion engineer.",
+            "Implement only the approved Respin task packet in XxxEngine.Respin.cs.",
+            "Verify IsRespin = CurrentTotalWin > 0 where specified, SingleSpinAccumulatedWin behavior, TotalWin resets during respin steps, termination, and final accumulated payout.",
+            "Do not alter unrelated spin partials or the delivered reference math. Escalate shared-state ownership to Cross-spin Review.",
+            "Return a focused diff, state-transition table, deterministic cases, and unresolved risks."
+          ],
+          output: [
+            "Focused XxxEngine.Respin.cs diff",
+            "Respin state-transition and win-accounting map",
+            "Deterministic continuation and termination cases"
+          ],
+          routing: [
+            "Branch complete → Cross-spin Review",
+            "Shared win-state conflict → Cross-spin Review",
+            "Unclear accumulation rule → specification clarification"
+          ],
+          files: ["XxxEngine.Respin.cs", "IsRespin", "SingleSpinAccumulatedWin", "TotalWin"]
+        },
+        integration: {
+          title: "Cross-spin Review",
+          type: "INTEGRATION / CRITIC",
+          summary: "Combines parallel branch diffs and validates their shared boundaries.",
+          overview: "Parallel agents can produce individually reasonable changes that conflict when combined. This required join node checks shared constants, state ownership, result fields, spin transitions, file conflicts, and centralized payout before the working tree is built.",
+          inputs: [
+            "Completed diffs from every activated spin converter",
+            "Shared engine contract and ownership map",
+            "XxxEngine.cs and existing spin switch",
+            "Declared shared-state and result-field dependencies"
+          ],
+          prompt: [
+            "Role: Cross-spin integration reviewer.",
+            "Combine only completed activated branches. Reject overlapping edits that were not assigned by the ownership map.",
+            "Check NormalSpin, FreeSpin, BonusSpin, and Respin transitions; shared constants; CurrentTotalWin and accumulated-win ownership; feature buy; max-win stopping; and centralized CalculatePayout after the spin switch.",
+            "Apply the minimal coordinated edits to XxxEngine.cs and directly affected result/state types when required. Preserve existing serialization keys and do not hide branch-specific defects inside integration changes.",
+            "Return an integrated diff, conflict decisions, affected test matrix, and any serialization compatibility risks."
+          ],
+          output: [
+            "Integrated Engine and directly affected result/state diff",
+            "Conflict and shared-state decision log",
+            "Affected spin-type test matrix",
+            "Serialization compatibility risks when result/state fields change"
+          ],
+          routing: [
+            "Integrated change ready → Match RTP",
+            "Branch defect → route to the owning spin converter",
+            "Shared-contract defect → return to Split Work by Spin Type"
+          ],
+          files: ["XxxEngine.cs", "integrated diff", "CalculatePayout", "test matrix"]
+        },
+        tool: {
+          title: "Match RTP",
+          type: "VALIDATION TOOLS",
+          summary: "Runs the production harness and compares its RTP with the approved math reference.",
+          overview: "This node wraps deterministic build, PowerShell harness, and simulation commands. It compares overall, normal-spin, free-spin, bonus-spin, and respin RTP where applicable, using an approved iteration count and tolerance. The node returns evidence; it does not decide math certification.",
+          inputs: [
+            "Integrated Engine and any directly required result/state diff",
+            "Solution file: .slnx or .sln",
+            "Approved Monte Carlo RTP targets and tolerance",
+            "Harness configuration, iteration count, seed policy, and private PG.Common.* packages"
+          ],
+          prompt: [
+            "No LLM prompt for the measurement itself: run deterministic commands.",
+            "Restore and build the solution, run AwesomeTestHarness_Runner.ps1 with the approved configuration, and collect the production RTP result.",
+            "Compare each RTP component with the approved Monte Carlo target and tolerance. Capture commands, exit codes, iterations, configuration, raw results, and gaps."
+          ],
+          output: [
+            "Restore and build results",
+            "Production RTP compared with the Monte Carlo target",
+            "Per-component gaps, tolerance verdict, and reproducible raw evidence"
+          ],
+          routing: [
+            "Compile failure → Cross-spin Review identifies the owning spin converter or shared integration change",
+            "RTP outside tolerance → Reviewer routes to the owning spin branch for investigation",
+            "RTP within tolerance → Reviewer"
+          ],
+          files: ["dotnet build -c Release", "AwesomeTestHarness_Runner.ps1", "Monte Carlo RTP", "tolerance"]
+        },
+        review: {
+          title: "Reviewer",
+          type: "CRITIC / ROUTER",
+          summary: "Checks evidence, classifies findings, and routes work to the smallest responsible node.",
+          overview: "This node prevents a generic retry loop. It compares the goal, game rules, diff, and RTP-matching evidence, then sends each finding to the node that can actually resolve it.",
+          inputs: [
+            "Approved Game Rules / Logic and source references",
+            "Integrated Engine and any required result/state diff, with branch ownership",
+            "Build, PowerShell harness, and RTP comparison evidence",
+            "Unresolved risks from every worker node"
+          ],
+          prompt: [
+            "Role: Critical slot-game change reviewer and router.",
+            "Check the exact goal first. Review math fidelity, spin-state transitions, CalculatePayout placement, feature buy, retrigger, max-win stopping, respin accumulation, serialization, and evidence quality where relevant.",
+            "Classify every finding as logic, serialization, spec ambiguity, environment/tooling, or human certification concern.",
+            "Route each finding to the smallest responsible node with evidence and acceptance criteria. Do not implement unrelated fixes and do not claim certification."
+          ],
+          output: [
+            "Pass or a classified finding list",
+            "Evidence-linked routing decision",
+            "Exit-gate review package when all automated checks pass"
+          ],
+          routing: [
+            "Spin-specific logic defect → NormalSpin, FreeSpin, BonusSpin, or Respin Converter",
+            "Cross-spin or shared-state defect → Cross-spin Review or Split Work by Spin Type",
+            "Serialization or shared-state defect → Cross-spin Review",
+            "Spec ambiguity → Analyze Math GameAlgo, then Entry gate again",
+            "Environment/tooling defect → rerun deterministic tool after correction",
+            "All checks pass → Exit gate"
+          ],
+          files: ["focused diff", "test results", "RTP evidence"]
+        },
+        exit: {
+          title: "Exit gate",
+          type: "HUMAN GATE",
+          summary: "The engineer owns the final correctness and merge decision.",
+          overview: "AI output can look complete while missing a rule such as no mini-retrigger, resetting Step to freeSpinCount, or stopping free-spin steps at max win. The human reviewer confirms the exact goal and source fidelity.",
+          inputs: [
+            "Approved Game Rules / Logic and authoritative source references",
+            "Final Engine and any directly affected result/state diff",
+            "Successful build, harness, and RTP comparison evidence",
+            "Reviewer findings and resolution history"
+          ],
+          prompt: [
+            "No LLM prompt: use a human approval checklist.",
+            "Confirm goal completeness, GameDoc and Monte Carlo fidelity, RNG and certification concerns, trigger and retrigger edge cases, max-win stopping, respin accounting, serialization contracts, and reproducibility.",
+            "The agent is a fast draftsman; the engineer owns correctness and certification compliance."
+          ],
+          output: [
+            "Approval with evidence references",
+            "Rejection with a specific responsible node and acceptance criteria",
+            "Auditable final decision"
+          ],
+          routing: [
+            "Approve → GitLab merge action",
+            "Reject → route through Reviewer to the responsible node",
+            "Certification concern → stop for the required human process"
+          ],
+          files: ["human review", "certification evidence", "approval"]
+        },
+        gitlab: {
+          title: "Merge to GitLab",
+          type: "APPROVED ACTION",
+          summary: "Applies the already-approved change to the self-hosted GitLab repository.",
+          overview: "This action is deliberately outside the reasoning nodes. It receives an approved commit or merge request and records the final repository state.",
+          inputs: [
+            "Exit-gate approval",
+            "Reviewed branch, commit, or merge request",
+            "Required GitLab permissions"
+          ],
+          prompt: [
+            "No LLM prompt: this is an approved repository action.",
+            "Merge only the reviewed change identified by the exit-gate approval."
+          ],
+          output: [
+            "Merged commit or merge-request identifier",
+            "GitLab audit trail",
+            "Final graph completion state"
+          ],
+          routing: [
+            "Merge succeeds → complete",
+            "Conflict or protection failure → stop and return to the human owner",
+            "Never bypass branch protection"
+          ],
+          files: ["gitlab.sige.la", "reviewed diff"]
+        }
+      };
+
+      var graphNodes = Array.prototype.slice.call(root.querySelectorAll(".ge-node"));
+      var graphEdges = Array.prototype.slice.call(root.querySelectorAll(".ge-edge"));
+      var forwardEdges = graphEdges.filter(function (edge) {
+        return !edge.classList.contains("is-feedback");
+      });
+      var selectedNode = "";
+      var activeInspectorTab = "overview";
+      var activeTrace = "immediate";
+      var detailTitle = root.querySelector("#ge-detail-title");
+      var detailSummary = root.querySelector("#ge-detail-summary");
+      var detailType = root.querySelector("#ge-detail-type");
+      var detailFiles = root.querySelector("#ge-detail-files");
+      var inspectorContent = root.querySelector("#ge-inspector-content");
+      var inspectorTabs = Array.prototype.slice.call(root.querySelectorAll("[data-ge-inspector-tab]"));
+      var traceButtons = Array.prototype.slice.call(root.querySelectorAll("[data-ge-trace]"));
+
+      function collectTrace(id, direction) {
+        var active = {};
+        var changed = true;
+        active[id] = true;
+        while (changed) {
+          changed = false;
+          forwardEdges.forEach(function (edge) {
+            var from = edge.getAttribute("data-from");
+            var to = edge.getAttribute("data-to");
+            if (direction === "downstream" && active[from] && !active[to]) {
+              active[to] = true;
+              changed = true;
+            }
+            if (direction === "upstream" && active[to] && !active[from]) {
+              active[from] = true;
+              changed = true;
+            }
+          });
+        }
+        return active;
+      }
+
+      function applyNodeHighlight(id, mode) {
+        var active = {};
+        if (id) {
+          if (mode === "upstream" || mode === "downstream") {
+            active = collectTrace(id, mode);
+          } else {
+            active[id] = true;
+            graphEdges.forEach(function (edge) {
+              var from = edge.getAttribute("data-from");
+              var to = edge.getAttribute("data-to");
+              if (from === id || to === id) {
+                active[from] = true;
+                active[to] = true;
+              }
+            });
+          }
+        }
+
+      graphNodes.forEach(function (node) {
+          node.classList.toggle("is-dim", Boolean(id) && !active[node.getAttribute("data-node")]);
+          node.classList.toggle("is-selected", selectedNode === node.getAttribute("data-node"));
+        });
+        graphEdges.forEach(function (edge) {
+          var from = edge.getAttribute("data-from");
+          var to = edge.getAttribute("data-to");
+          var connected = false;
+          if (id && mode === "immediate") {
+            connected = from === id || to === id;
+          } else if (id) {
+            connected = !edge.classList.contains("is-feedback") && active[from] && active[to];
+          }
+          edge.classList.toggle("is-highlight", Boolean(id) && connected);
+          edge.classList.toggle("is-dim", Boolean(id) && !connected);
+        });
+      }
+
+      function appendList(items) {
+        var list = document.createElement("ul");
+        items.forEach(function (textValue) {
+          var item = document.createElement("li");
+          item.textContent = textValue;
+          list.appendChild(item);
+        });
+        inspectorContent.appendChild(list);
+      }
+
+      function renderInspectorContent() {
+        var item = details[selectedNode];
+        if (!item || !inspectorContent) return;
+        inspectorContent.textContent = "";
+        if (activeInspectorTab === "overview") {
+          var paragraph = document.createElement("p");
+          paragraph.textContent = item.overview;
+          inspectorContent.appendChild(paragraph);
+          return;
+        }
+        if (activeInspectorTab === "prompt") {
+          var pre = document.createElement("pre");
+          var code = document.createElement("code");
+          code.textContent = item.prompt.join(String.fromCharCode(10));
+          pre.appendChild(code);
+          inspectorContent.appendChild(pre);
+          return;
+        }
+        appendList(item[activeInspectorTab]);
+      }
+
+      function setInspectorTab(name) {
+        activeInspectorTab = name;
+        inspectorTabs.forEach(function (button) {
+          var active = button.getAttribute("data-ge-inspector-tab") === name;
+          button.setAttribute("aria-selected", active ? "true" : "false");
+          button.classList.toggle("btn-primary", active);
+        });
+        renderInspectorContent();
+      }
+
+      function setTrace(mode) {
+        activeTrace = mode;
+        traceButtons.forEach(function (button) {
+          var active = button.getAttribute("data-ge-trace") === mode;
+          button.setAttribute("aria-pressed", active ? "true" : "false");
+          button.classList.toggle("btn-primary", active);
+        });
+        applyNodeHighlight(selectedNode, activeTrace);
+      }
+
+      function showNodeDetail(id) {
+        var item = details[id];
+        if (!item || !detailTitle || !detailSummary || !detailType || !detailFiles) return;
+        detailTitle.textContent = item.title;
+        detailSummary.textContent = item.summary;
+        detailType.textContent = item.type;
+        detailFiles.textContent = "";
+        item.files.forEach(function (file) {
+          var code = document.createElement("code");
+          code.textContent = file;
+          detailFiles.appendChild(code);
+        });
+        inspectorTabs.forEach(function (button) {
+          button.disabled = false;
+        });
+        traceButtons.forEach(function (button) {
+          button.disabled = false;
+        });
+        setInspectorTab("overview");
+        setTrace("immediate");
+      }
+
+      inspectorTabs.forEach(function (button) {
+        button.disabled = true;
+        button.addEventListener("click", function () {
+          setInspectorTab(button.getAttribute("data-ge-inspector-tab"));
+        });
+      });
+
+      traceButtons.forEach(function (button) {
+        button.addEventListener("click", function () {
+          setTrace(button.getAttribute("data-ge-trace"));
+        });
+      });
+
+      graphNodes.forEach(function (node) {
+        var id = node.getAttribute("data-node");
+        node.addEventListener("mouseenter", function () {
+          applyNodeHighlight(id, "immediate");
+        });
+        node.addEventListener("mouseleave", function () {
+          applyNodeHighlight(selectedNode, activeTrace);
+        });
+        node.addEventListener("focus", function () {
+          applyNodeHighlight(id, "immediate");
+        });
+        node.addEventListener("blur", function () {
+          applyNodeHighlight(selectedNode, activeTrace);
+        });
+        node.addEventListener("click", function (event) {
+          event.preventDefault();
+          selectedNode = id;
+          showNodeDetail(selectedNode);
+        });
+      });
+
+      var steps = [
+        {
+          title: "Kickoff",
+          body: "The math team delivers StickyMultiplierWild_Solution and the authoritative GameDoc. No failure is assumed yet.",
+          files: ["GameDoc.pdf", "GameAlgo/"],
+          active: ["spec"],
+          edges: []
+        },
+        {
+          title: "Extract the game rules and logic",
+          body: "Analyze Math GameAlgo records the retrigger rule: reset Step to freeSpinCount and allow no mini-retrigger. Source locations and open questions travel with the rule.",
+          files: ["GameDoc.pdf", "GameAlgo/", "Game Rules / Logic"],
+          active: ["spec"],
+          edges: ["spec-entry"]
+        },
+        {
+          title: "Approve the interpretation",
+          body: "An engineer checks the extracted rule against the GameDoc and Monte Carlo source before implementation starts.",
+          files: ["Game Rules / Logic", "human approval"],
+          active: ["entry"],
+          edges: ["spec-entry", "entry-router"]
+        },
+        {
+          title: "Split and run in parallel",
+          body: "Split Work by Spin Type activates only FreeSpin for this retrigger change. The FreeSpin Converter receives the approved rule and drafts its focused partial.",
+          files: ["XxxEngine.FreeSpin.cs", "Game Rules / Logic"],
+          active: ["router", "freeSpin"],
+          edges: ["entry-router", "router-free"]
+        },
+        {
+          title: "Seeded failure path",
+          body: "For teaching, assume the draft omits the Step reset. Match RTP runs the build and harness, forces the retrigger path with CustomReels, and returns a reproducible failure.",
+          files: ["AwesomeTestHarness_Runner.ps1", "CustomReels", "FreeSpin.cs"],
+          active: ["tool", "review"],
+          edges: ["free-tool", "tool-review"]
+        },
+        {
+          title: "Route the finding",
+          body: "The Reviewer classifies this as a FreeSpin logic defect and routes it directly to the FreeSpin Converter. The other spin branches remain untouched.",
+          files: ["focused diff", "harness failure"],
+          active: ["review", "freeSpin"],
+          edges: ["tool-review", "review-free"]
+        },
+        {
+          title: "Fix and collect evidence",
+          body: "The FreeSpin Converter adds the required Step reset. Match RTP reruns the production harness and compares the production result with the approved Monte Carlo target.",
+          files: ["CheckAndRetriggerFreeSpin", "production RTP", "Monte Carlo RTP", "tolerance"],
+          active: ["freeSpin", "tool", "review"],
+          edges: ["free-tool", "tool-review"]
+        },
+        {
+          title: "Human review and merge",
+          body: "An engineer compares the final Engine diff, GameDoc rule, reference math, and command evidence. Approval unlocks the GitLab merge.",
+          files: ["Engine diff", "GameDoc", "RTP evidence", "GitLab"],
+          active: ["review", "exit"],
+          edges: ["tool-review", "review-exit"]
+        }
+      ];
+
+      var currentStep = 0;
+      var stepButtons = Array.prototype.slice.call(root.querySelectorAll("[data-ge-step]"));
+      var prevStep = root.querySelector("#ge-prev-step");
+      var nextStep = root.querySelector("#ge-next-step");
+      var stepLabel = root.querySelector("#ge-step-label");
+      var stepTitle = root.querySelector("#ge-step-title");
+      var stepBody = root.querySelector("#ge-step-body");
+      var stepFiles = root.querySelector("#ge-step-files");
+      var miniNodes = Array.prototype.slice.call(root.querySelectorAll("[data-mini-node]"));
+      var miniEdges = Array.prototype.slice.call(root.querySelectorAll("[data-mini-edge]"));
+
+      function renderStep(index) {
+        currentStep = Math.max(0, Math.min(steps.length - 1, index));
+        var step = steps[currentStep];
+        stepLabel.textContent = "Illustrative validation scenario · Step " + currentStep + " of " + (steps.length - 1);
+        stepTitle.textContent = step.title;
+        stepBody.textContent = step.body;
+        stepFiles.textContent = "";
+        step.files.forEach(function (file) {
+          var code = document.createElement("code");
+          code.textContent = file;
+          stepFiles.appendChild(code);
+        });
+        stepButtons.forEach(function (button) {
+          var active = Number(button.getAttribute("data-ge-step")) === currentStep;
+          button.setAttribute("aria-pressed", active ? "true" : "false");
+          button.classList.toggle("btn-primary", active);
+        });
+        miniNodes.forEach(function (node) {
+          node.classList.toggle("is-active", step.active.indexOf(node.getAttribute("data-mini-node")) !== -1);
+        });
+        miniEdges.forEach(function (edge) {
+          edge.classList.toggle("is-active", step.edges.indexOf(edge.getAttribute("data-mini-edge")) !== -1);
+        });
+        prevStep.disabled = currentStep === 0;
+        nextStep.disabled = currentStep === steps.length - 1;
+      }
+
+      stepButtons.forEach(function (button) {
+        button.addEventListener("click", function () {
+          renderStep(Number(button.getAttribute("data-ge-step")));
+        });
+      });
+
+      prevStep.addEventListener("click", function () {
+        renderStep(currentStep - 1);
+      });
+
+      nextStep.addEventListener("click", function () {
+        renderStep(currentStep + 1);
+      });
+
+      renderStep(0);
+      showPanel("graph");
+    })();
+  </script>
+</div>
+
+<script id="codex-visualization-floating-ui-core" src="https://unpkg.com/@floating-ui/core@1.7.3/dist/floating-ui.core.umd.min.js"></script>
+<script id="codex-visualization-floating-ui-dom" src="https://unpkg.com/@floating-ui/dom@1.7.4/dist/floating-ui.dom.umd.min.js"></script>
+<script id="codex-visualization-lucide" async src="https://unpkg.com/lucide@1.17.0/dist/umd/lucide.js"></script>
+<script id="codex-visualization-tooltip">/* oxlint-disable typescript/no-unsafe-argument, typescript/no-unsafe-call, typescript/no-unsafe-return */
+// Runs inside the visualization sandbox, not the host webview.
+(() => {
+  if (window.FloatingUIDOM == null) {
+    return;
+  }
+  const { autoUpdate, computePosition, flip, offset, shift, size } =
+    window.FloatingUIDOM;
+  const tooltipPlacements = new Set(["top", "right", "bottom", "left"]);
+  const tooltipId = `codex-visualization-tooltip-${
+    window.crypto?.randomUUID?.() ?? Date.now().toString(36)
+  }`;
+  const tooltipGap = 5;
+  const hoverDelay = 700;
+  const skipDelay = 300;
+  let activeTrigger = null;
+  let pendingTrigger = null;
+  let tooltip = null;
+  let openTimeout = null;
+  let autoUpdateCleanup = null;
+  let positionRequest = 0;
+  let skipDelayUntil = 0;
+
+  const getTrigger = (target) =>
+    target?.nodeType === Node.ELEMENT_NODE
+      ? target.closest("[data-tooltip]")
+      : null;
+  const containsTarget = (trigger, target) =>
+    target?.nodeType != null && trigger.contains(target);
+  const getContent = (trigger) =>
+    trigger.getAttribute("data-tooltip")?.trim() ?? "";
+  const getPlacement = (trigger) => {
+    const placement = trigger.getAttribute("data-tooltip-placement");
+    return tooltipPlacements.has(placement) ? placement : "top";
+  };
+  const getTooltip = () => {
+    if (tooltip == null) {
+      tooltip = document.createElement("div");
+      tooltip.id = tooltipId;
+      tooltip.className = "tooltip";
+      tooltip.setAttribute("role", "tooltip");
+    }
+    return tooltip;
+  };
+  const setDescribedBy = (trigger, described) => {
+    const ids = new Set(
+      (trigger.getAttribute("aria-describedby") ?? "")
+        .split(/\s+/)
+        .filter(Boolean),
+    );
+    if (described) {
+      ids.add(tooltipId);
+    } else {
+      ids.delete(tooltipId);
+    }
+    if (ids.size === 0) {
+      trigger.removeAttribute("aria-describedby");
+    } else {
+      trigger.setAttribute("aria-describedby", [...ids].join(" "));
+    }
+  };
+  const clearOpenTimeout = () => {
+    if (openTimeout != null) {
+      window.clearTimeout(openTimeout);
+      openTimeout = null;
+    }
+    pendingTrigger = null;
+  };
+  const closeTooltip = (activateSkipDelay = true) => {
+    clearOpenTimeout();
+    positionRequest += 1;
+    autoUpdateCleanup?.();
+    autoUpdateCleanup = null;
+    if (activeTrigger == null) {
+      return;
+    }
+    setDescribedBy(activeTrigger, false);
+    activeTrigger = null;
+    tooltip?.remove();
+    if (activateSkipDelay) {
+      skipDelayUntil = Date.now() + skipDelay;
+    }
+  };
+  const updatePosition = (trigger, floating) => {
+    const request = ++positionRequest;
+    void computePosition(trigger, floating, {
+      middleware: [
+        offset(tooltipGap),
+        flip({ padding: tooltipGap }),
+        shift({ padding: tooltipGap }),
+        size({
+          padding: tooltipGap,
+          apply({ availableHeight, availableWidth, elements }) {
+            elements.floating.style.setProperty(
+              "--tooltip-available-width",
+              `${Math.max(0, availableWidth)}px`,
+            );
+            elements.floating.style.setProperty(
+              "--tooltip-available-height",
+              `${Math.max(0, availableHeight)}px`,
+            );
+          },
+        }),
+      ],
+      placement: getPlacement(trigger),
+      strategy: "fixed",
+    })
+      .then(({ x, y }) => {
+        if (activeTrigger !== trigger || request !== positionRequest) {
+          return;
+        }
+        const scale = window.devicePixelRatio || 1;
+        floating.style.transform = `translate(${Math.round(x * scale) / scale}px, ${Math.round(y * scale) / scale}px)`;
+        floating.style.visibility = "visible";
+      })
+      .catch(() => {
+        if (activeTrigger === trigger && request === positionRequest) {
+          closeTooltip(false);
+        }
+      });
+  };
+  const openTooltip = (trigger) => {
+    const content = getContent(trigger);
+    if (!trigger.isConnected || content.length === 0) {
+      return;
+    }
+    clearOpenTimeout();
+    if (activeTrigger === trigger) {
+      return;
+    }
+    closeTooltip();
+    const floating = getTooltip();
+    floating.textContent = content;
+    floating.style.visibility = "hidden";
+    floating.style.transform = "translate(0, 0)";
+    document.body.appendChild(floating);
+    activeTrigger = trigger;
+    setDescribedBy(trigger, true);
+    autoUpdateCleanup = autoUpdate(trigger, floating, () => {
+      updatePosition(trigger, floating);
+    });
+  };
+  const requestOpen = (trigger, immediate = false) => {
+    if (
+      getContent(trigger).length === 0 ||
+      activeTrigger === trigger ||
+      pendingTrigger === trigger
+    ) {
+      return;
+    }
+    clearOpenTimeout();
+    pendingTrigger = trigger;
+    const delay =
+      immediate || activeTrigger != null || Date.now() < skipDelayUntil
+        ? 0
+        : hoverDelay;
+    if (delay === 0) {
+      openTooltip(trigger);
+      return;
+    }
+    openTimeout = window.setTimeout(() => {
+      openTimeout = null;
+      pendingTrigger = null;
+      openTooltip(trigger);
+    }, delay);
+  };
+  const handlePointerOpen = (event) => {
+    if (event.pointerType === "touch") {
+      return;
+    }
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    requestOpen(trigger);
+  };
+  const handleLeave = (event) => {
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const handleFocusIn = (event) => {
+    const trigger = getTrigger(event.target);
+    if (trigger?.matches(":focus-visible")) {
+      requestOpen(trigger, true);
+    }
+  };
+  const handleKeyDown = (event) => {
+    if (event.key === "Escape") {
+      closeTooltip();
+    }
+  };
+  const handleContextMenu = (event) => {
+    const trigger = getTrigger(event.target);
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const destroy = () => {
+    closeTooltip(false);
+    document.removeEventListener("pointerover", handlePointerOpen);
+    document.removeEventListener("pointerout", handleLeave);
+    document.removeEventListener("focusin", handleFocusIn);
+    document.removeEventListener("focusout", handleLeave);
+    document.removeEventListener("keydown", handleKeyDown);
+    document.removeEventListener("contextmenu", handleContextMenu);
+    tooltip = null;
+  };
+
+  document.addEventListener("pointerover", handlePointerOpen);
+  document.addEventListener("pointerout", handleLeave);
+  document.addEventListener("focusin", handleFocusIn);
+  document.addEventListener("focusout", handleLeave);
+  document.addEventListener("keydown", handleKeyDown);
+  document.addEventListener("contextmenu", handleContextMenu);
+  window.addEventListener("pagehide", destroy, { once: true });
+})();
+</script>
+<script id="codex-visualization-lucide-initialization">(() => {
+  const initialize = () => {
+    globalThis.lucide?.createIcons({ attrs: { width: 16, height: 16 } });
+  };
+  if (globalThis.lucide != null) {
+    initialize();
+    return;
+  }
+  document
+    .getElementById("codex-visualization-lucide")
+    ?.addEventListener("load", initialize, { once: true });
+})();
+</script>
+</body>
+</html>

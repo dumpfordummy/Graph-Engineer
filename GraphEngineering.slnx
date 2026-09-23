@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/GraphEngineering.Core/GraphEngineering.Core.csproj" />
+    <Project Path="src/GraphEngineering.Api/GraphEngineering.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/GraphEngineering.Core.Tests/GraphEngineering.Core.Tests.csproj" />
+    <Project Path="tests/GraphEngineering.Api.Tests/GraphEngineering.Api.Tests.csproj" />
+  </Folder>
+</Solution>
